@@ -18,6 +18,7 @@ export interface Project {
   watermarkEnabled?: boolean;
   watermarkText?: string;
   watermarkOpacity?: number;
+  animationPreset?: string;
 }
 
 const CHUNK_SIZE = 800000; // 800kb per document chunk to avoid 1MB limits safely
@@ -154,6 +155,7 @@ export async function getProjects(): Promise<Project[]> {
       watermarkEnabled: data.watermarkEnabled,
       watermarkText: data.watermarkText,
       watermarkOpacity: data.watermarkOpacity,
+      animationPreset: data.animationPreset,
       userId: data.userId
     } as Project);
   }

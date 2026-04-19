@@ -20,6 +20,7 @@ export default function App() {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [animationPreset, setAnimationPreset] = useState<string>('Subtle Zoom');
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [editPrompt, setEditPrompt] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -31,6 +32,7 @@ export default function App() {
   
   const [palette, setPalette] = useState<string[]>([]);
   const [palettePrompt, setPalettePrompt] = useState<string>('');
+  const [paletteImageUrl, setPaletteImageUrl] = useState<string>('');
   const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
 
   const [watermarkEnabled, setWatermarkEnabled] = useState(false);
@@ -184,6 +186,7 @@ export default function App() {
           watermarkEnabled,
           watermarkText,
           watermarkOpacity,
+          animationPreset,
         });
       }
     } catch (err: any) {
@@ -262,6 +265,7 @@ export default function App() {
           watermarkEnabled,
           watermarkText,
           watermarkOpacity,
+          animationPreset,
         });
       }
     } catch (err: any) {
@@ -289,7 +293,7 @@ export default function App() {
       
       let operation = await ai.models.generateVideos({
         model: 'veo-3.1-fast-generate-preview',
-        prompt: `Animate this logo smoothly and professionally. Add a subtle, dynamic reveal or continuous slow cinematic movement. Ensure it looks high-end. Description context: ${description}`,
+        prompt: `Animate this logo smoothly and professionally with a ${animationPreset} cinematic style. Ensure it looks high-end. Description context: ${description}`,
         image: {
           imageBytes: selectedImageData.base64,
           mimeType: selectedImageData.mimeType
@@ -338,6 +342,7 @@ export default function App() {
           watermarkEnabled,
           watermarkText,
           watermarkOpacity,
+          animationPreset,
         });
       } else {
         throw new Error('No video URI returned.');
@@ -368,6 +373,7 @@ export default function App() {
     setPalettePrompt('');
     setWatermarkEnabled(false);
     setWatermarkText('SOLODESIGN');
+    setAnimationPreset('Subtle Zoom');
     setVideoUrl(null);
     setVideoBlob(null);
     setEditPrompt('');
@@ -386,6 +392,8 @@ export default function App() {
     setPalette(prj.palette || []);
     setWatermarkEnabled(prj.watermarkEnabled || false);
     setWatermarkText(prj.watermarkText || 'SOLODESIGN');
+    setWatermarkOpacity(prj.watermarkOpacity ?? 0.7);
+    setAnimationPreset(prj.animationPreset || 'Subtle Zoom');
     
     if (prj.videoBlob) {
        setVideoBlob(prj.videoBlob);
@@ -426,6 +434,7 @@ export default function App() {
         watermarkEnabled,
         watermarkText,
         watermarkOpacity,
+        animationPreset,
       });
     }
   };
@@ -454,6 +463,7 @@ export default function App() {
             watermarkEnabled,
             watermarkText,
             watermarkOpacity,
+            animationPreset,
           });
         }
      }
@@ -483,12 +493,13 @@ export default function App() {
             watermarkEnabled,
             watermarkText,
             watermarkOpacity,
+            animationPreset,
           });
         }
      }
   };
 
-  const generateColors = async (mode: 'text' | 'image') => {
+  const generateColors = async (mode: 'text' | 'image' | 'url') => {
     setIsGeneratingPalette(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -502,6 +513,36 @@ export default function App() {
           { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
           { text: `You are an expert color designer. Extract a beautiful color palette of exactly 5 hex codes from this image. Respond ONLY with a JSON array of strings, e.g. ["#FFFFFF", "#000000", ...].` }
         ];
+      } else if (mode === 'url' && paletteImageUrl.trim()) {
+        const url = paletteImageUrl.trim();
+        const base64Data = await new Promise<{base64: string, mimeType: string}>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "Anonymous";
+          img.onload = () => {
+             const canvas = document.createElement('canvas');
+             canvas.width = img.width;
+             canvas.height = img.height;
+             const ctx = canvas.getContext('2d');
+             if (ctx) {
+                ctx.drawImage(img, 0, 0);
+                const dataUrl = canvas.toDataURL('image/png');
+                resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/png' });
+             } else {
+                reject(new Error("Failed to get context"));
+             }
+          };
+          img.onerror = () => reject(new Error("Failed to load image from URL. Typical cause is CORS restrictions from the host site."));
+          img.src = url;
+        });
+
+        parts = [
+          { inlineData: { data: base64Data.base64, mimeType: base64Data.mimeType } },
+          { text: `You are an expert color designer. Extract a beautiful color palette of exactly 5 hex codes from this image. Respond ONLY with a JSON array of strings, e.g. ["#FFFFFF", "#000000", ...].` }
+        ];
+      }
+
+      if (parts.length === 0) {
+        throw new Error('Invalid input or missing image for palette generation.');
       }
 
       const response = await ai.models.generateContent({
@@ -531,6 +572,7 @@ export default function App() {
               editHistory,
               historyPointer,
               palette: parsed,
+              animationPreset,
             });
           }
         }
@@ -559,6 +601,7 @@ export default function App() {
             editHistory,
             historyPointer,
             palette: newPalette,
+            animationPreset,
          });
      }
   };
@@ -580,6 +623,7 @@ export default function App() {
             editHistory,
             historyPointer,
             palette: newPalette,
+            animationPreset,
          });
      }
   };
@@ -603,6 +647,7 @@ export default function App() {
         palette,
         watermarkEnabled: newState,
         watermarkText,
+        animationPreset,
       });
     }
   };
@@ -624,6 +669,7 @@ export default function App() {
         palette,
         watermarkEnabled,
         watermarkText,
+        animationPreset,
       });
     }
   };
@@ -832,19 +878,25 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest">Format</span>
-                  <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
-                    value={aspectRatio}
-                    onChange={(e) => setAspectRatio(e.target.value as '16:9' | '9:16')}
-                  >
-                    <option value="16:9">16:9 (Landscape)</option>
-                    <option value="9:16">9:16 (Portrait)</option>
-                  </select>
+                  <div className="flex bg-black/20 border border-white/10 rounded-lg p-1">
+                    <button
+                      onClick={() => setAspectRatio('16:9')}
+                      className={`flex-1 py-1.5 text-[11px] font-medium rounded-md transition-all ${aspectRatio === '16:9' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
+                    >
+                      16:9
+                    </button>
+                    <button
+                      onClick={() => setAspectRatio('9:16')}
+                      className={`flex-1 py-1.5 text-[11px] font-medium rounded-md transition-all ${aspectRatio === '9:16' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
+                    >
+                      9:16
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest">Quality</span>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-[9px] text-[12px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
                     value={imageSize}
                     onChange={(e) => setImageSize(e.target.value as '1K' | '2K' | '4K')}
                   >
@@ -864,13 +916,28 @@ export default function App() {
               
               <div className="flex gap-2 mb-4 flex-wrap">
                 {palette.map((color, i) => (
-                  <div key={i} className="relative group w-8 h-8 rounded-full border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]" style={{ backgroundColor: color }}>
+                  <div 
+                    key={i} 
+                    className="relative group w-8 h-8 rounded-full border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)] cursor-pointer hover:scale-110 transition-transform" 
+                    style={{ backgroundColor: color }}
+                    title={`Click to add ${color} to prompt`}
+                    onClick={() => {
+                       setDescription(prev => {
+                          const separator = prev.trim() && !prev.endsWith(',') && !prev.endsWith('.') ? ', ' : (prev.trim() ? ' ' : '');
+                          return prev + separator + `use the hex color ${color}`;
+                       });
+                    }}
+                  >
                     <button 
-                      onClick={() => handlePaletteRemove(i)}
+                      onClick={(e) => { e.stopPropagation(); handlePaletteRemove(i); }}
                       className="absolute -top-1 -right-1 bg-red-500/90 hover:bg-red-500 text-white rounded-full w-[18px] h-[18px] flex items-center justify-center opacity-0 group-hover:opacity-100 text-[10px] transition-all backdrop-blur-md"
+                      title="Remove color"
                     >
                       <X size={10} />
                     </button>
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/80 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                      {color} (Click to use)
+                    </div>
                   </div>
                 ))}
                 {palette.length < 6 && (
@@ -897,6 +964,23 @@ export default function App() {
                       title="Suggest colors from text"
                    >
                      {isGeneratingPalette ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                   </button>
+                </div>
+                <div className="flex gap-2">
+                   <input 
+                      type="url" 
+                      placeholder="Paste Image URL to extract" 
+                      value={paletteImageUrl}
+                      onChange={(e) => setPaletteImageUrl(e.target.value)}
+                      className="flex-1 bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all"
+                   />
+                   <button 
+                      onClick={() => generateColors('url')}
+                      disabled={isGeneratingPalette || !paletteImageUrl.trim()}
+                      className="px-3.5 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 disabled:opacity-50 flex items-center justify-center transition-colors"
+                      title="Extract colors from URL"
+                   >
+                     {isGeneratingPalette && paletteImageUrl.trim() ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
                    </button>
                 </div>
                 <button 
@@ -1004,14 +1088,34 @@ export default function App() {
                 {isGeneratingImage ? 'Drafting Render...' : 'Draft Design'}
               </button>
 
-              <button
-                onClick={animateLogo}
-                disabled={imageOptions.length === 0 || selectedImageIndex === null || isGeneratingVideo || isGeneratingImage || isEditingImage}
-                className="w-full py-[14px] px-6 bg-[#4facfe]/15 border border-[#4facfe]/50 text-white font-medium rounded-[12px] hover:bg-[#4facfe]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 flex items-center justify-center gap-2 text-[14px]"
-              >
-                {isGeneratingVideo ? <Loader2 className="animate-spin" size={18} /> : <Film size={18} />}
-                {isGeneratingVideo ? 'Rendering...' : 'Generate Motion'}
-              </button>
+              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 mt-1">
+                <div className="flex justify-between items-center px-1">
+                   <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
+                     Animation Style
+                   </label>
+                </div>
+                <select
+                  value={animationPreset}
+                  onChange={(e) => setAnimationPreset(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all appearance-none outline-none"
+                  style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                >
+                  <option value="Subtle Zoom" className="bg-[#0f111a]">Subtle Zoom</option>
+                  <option value="Gentle Pan" className="bg-[#0f111a]">Gentle Pan</option>
+                  <option value="Dynamic Reveal" className="bg-[#0f111a]">Dynamic Reveal</option>
+                  <option value="Cinematic Orbit" className="bg-[#0f111a]">Cinematic Orbit</option>
+                  <option value="Slow Fade In" className="bg-[#0f111a]">Slow Fade In</option>
+                </select>
+                
+                <button
+                  onClick={animateLogo}
+                  disabled={imageOptions.length === 0 || selectedImageIndex === null || isGeneratingVideo || isGeneratingImage || isEditingImage}
+                  className="w-full py-[14px] px-6 bg-[#4facfe]/15 border border-[#4facfe]/50 text-white font-medium rounded-[12px] hover:bg-[#4facfe]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 flex items-center justify-center gap-2 text-[14px]"
+                >
+                  {isGeneratingVideo ? <Loader2 className="animate-spin" size={18} /> : <Film size={18} />}
+                  {isGeneratingVideo ? 'Rendering...' : 'Generate Motion'}
+                </button>
+              </div>
             </section>
           </div>
         </div>
