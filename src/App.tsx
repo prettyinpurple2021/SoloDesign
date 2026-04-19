@@ -1,21 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
-import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound } from 'lucide-react';
+import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2 } from 'lucide-react';
+import { saveProject, getProjects, deleteProject, Project } from './lib/db';
 
 export default function App() {
   const [hasKey, setHasKey] = useState(true);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
   
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [imageData, setImageData] = useState<{ base64: string; mimeType: string } | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageOptions, setImageOptions] = useState<{ base64: string; mimeType: string; url: string }[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isEditingImage, setIsEditingImage] = useState(false);
+  const [editPrompt, setEditPrompt] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const [generationAction, setGenerationAction] = useState<string>('');
+  
+  const [editHistory, setEditHistory] = useState<number[]>([]);
+  const [historyPointer, setHistoryPointer] = useState<number>(-1);
+  
+  const [showProjects, setShowProjects] = useState(false);
+  const [projectsList, setProjectsList] = useState<Project[]>([]);
 
   useEffect(() => {
     const checkKey = async () => {
@@ -26,6 +37,12 @@ export default function App() {
     };
     checkKey();
   }, []);
+
+  useEffect(() => {
+    if (showProjects) {
+      getProjects().then(setProjectsList);
+    }
+  }, [showProjects]);
 
   const requestKey = async () => {
     if (typeof window !== 'undefined' && (window as any).aistudio?.openSelectKey) {
@@ -41,29 +58,66 @@ export default function App() {
       setIsGeneratingImage(true);
       setGenerationAction('Drafting logo designs...');
       setVideoUrl(null); // Reset video if making a new logo
-      setImageData(null);
-      setImageUrl(null);
+      setVideoBlob(null);
+      setImageOptions([]);
+      setSelectedImageIndex(null);
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents: {
-          parts: [{ text: `A professional company logo. Clean, distinctive, modern. Description: ${description}. White background or transparent-like clean studio setup.` }],
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: aspectRatio,
-            imageSize: imageSize
-          }
-        }
-      });
+      const prompts = [
+        `A professional company logo. Clean, minimalist, and sleek. Description: ${description}. White background or transparent-like clean studio setup.`,
+        `A professional company logo. Bold, vibrant, and highly expressive. Description: ${description}. White background or transparent-like clean studio setup.`,
+        `A professional company logo. Abstract, geometric, and conceptual. Description: ${description}. White background or transparent-like clean studio setup.`
+      ];
 
-      const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
-      if (part?.inlineData) {
-        const { data, mimeType } = part.inlineData;
-        setImageData({ base64: data, mimeType });
-        setImageUrl(`data:${mimeType};base64,${data}`);
+      const promises = prompts.map(prompt => 
+        ai.models.generateContent({
+          model: 'gemini-3-pro-image-preview',
+          contents: {
+            parts: [{ text: prompt }],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio,
+              imageSize: imageSize
+            }
+          }
+        })
+      );
+
+      const responses = await Promise.all(promises);
+      
+      const newOptions = responses.map(res => {
+        const part = res.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        if (part?.inlineData) {
+          const { data, mimeType } = part.inlineData;
+          return { base64: data, mimeType, url: `data:${mimeType};base64,${data}` };
+        }
+        return null;
+      }).filter(Boolean) as { base64: string; mimeType: string; url: string }[];
+
+      if (newOptions.length > 0) {
+        setImageOptions(newOptions);
+        setSelectedImageIndex(0);
+        setEditHistory([0]);
+        setHistoryPointer(0);
+        
+        const id = currentProjectId || crypto.randomUUID();
+        if (!currentProjectId) setCurrentProjectId(id);
+        
+        await saveProject({
+          id,
+          title: description.trim().substring(0, 30) || 'Untitled Design',
+          description,
+          aspectRatio,
+          imageSize,
+          imageOptions: newOptions,
+          selectedImageIndex: 0,
+          videoBlob: null,
+          updatedAt: Date.now(),
+          editHistory: [0],
+          historyPointer: 0,
+        });
       }
     } catch (err: any) {
       console.error(err);
@@ -78,8 +132,83 @@ export default function App() {
     }
   };
 
+  const editLogo = async () => {
+    if (!editPrompt.trim() || selectedImageIndex === null || !imageOptions[selectedImageIndex]) return;
+    
+    try {
+      setIsEditingImage(true);
+      setGenerationAction('Applying your edits...');
+      
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const sourceImage = imageOptions[selectedImageIndex];
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: sourceImage.base64,
+                mimeType: sourceImage.mimeType
+              }
+            },
+            { text: editPrompt }
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: aspectRatio,
+            imageSize: imageSize
+          }
+        }
+      });
+
+      const part = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+      if (part?.inlineData) {
+        const { data, mimeType } = part.inlineData;
+        const newImage = { base64: data, mimeType, url: `data:${mimeType};base64,${data}` };
+        const updatedOptions = [...imageOptions, newImage];
+        const newIndex = updatedOptions.length - 1;
+        
+        const newHistory = editHistory.slice(0, historyPointer + 1);
+        newHistory.push(newIndex);
+        
+        setImageOptions(updatedOptions);
+        setSelectedImageIndex(newIndex);
+        setEditHistory(newHistory);
+        setHistoryPointer(newHistory.length - 1);
+        setEditPrompt('');
+        
+        await saveProject({
+          id: currentProjectId || crypto.randomUUID(),
+          title: description.trim().substring(0, 30) || 'Untitled Design',
+          description,
+          aspectRatio,
+          imageSize,
+          imageOptions: updatedOptions,
+          selectedImageIndex: newIndex,
+          videoBlob,
+          updatedAt: Date.now(),
+          editHistory: newHistory,
+          historyPointer: newHistory.length - 1,
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+      if (err.message && err.message.includes('Requested entity was not found')) {
+        setHasKey(false);
+      } else {
+        alert('Failed to edit image. Please check your API key and quota.');
+      }
+    } finally {
+      setIsEditingImage(false);
+      setGenerationAction('');
+    }
+  };
+
   const animateLogo = async () => {
-    if (!imageData) return;
+    if (selectedImageIndex === null || !imageOptions[selectedImageIndex]) return;
+    const selectedImageData = imageOptions[selectedImageIndex];
     
     try {
       setIsGeneratingVideo(true);
@@ -91,8 +220,8 @@ export default function App() {
         model: 'veo-3.1-fast-generate-preview',
         prompt: `Animate this logo smoothly and professionally. Add a subtle, dynamic reveal or continuous slow cinematic movement. Ensure it looks high-end. Description context: ${description}`,
         image: {
-          imageBytes: imageData.base64,
-          mimeType: imageData.mimeType
+          imageBytes: selectedImageData.base64,
+          mimeType: selectedImageData.mimeType
         },
         config: {
           numberOfVideos: 1,
@@ -119,7 +248,22 @@ export default function App() {
           },
         });
         const blob = await response.blob();
+        setVideoBlob(blob);
         setVideoUrl(URL.createObjectURL(blob));
+        
+        await saveProject({
+          id: currentProjectId || crypto.randomUUID(),
+          title: description.trim().substring(0, 30) || 'Untitled Design',
+          description,
+          aspectRatio,
+          imageSize,
+          imageOptions,
+          selectedImageIndex,
+          videoBlob: blob,
+          updatedAt: Date.now(),
+          editHistory,
+          historyPointer,
+        });
       } else {
         throw new Error('No video URI returned.');
       }
@@ -133,6 +277,130 @@ export default function App() {
     } finally {
       setIsGeneratingVideo(false);
       setGenerationAction('');
+    }
+  };
+
+  const startNewProject = () => {
+    setCurrentProjectId(null);
+    setDescription('');
+    setAspectRatio('16:9');
+    setImageSize('1K');
+    setImageOptions([]);
+    setSelectedImageIndex(null);
+    setEditHistory([]);
+    setHistoryPointer(-1);
+    setVideoUrl(null);
+    setVideoBlob(null);
+    setEditPrompt('');
+    setShowProjects(false);
+  };
+
+  const loadProject = (prj: Project) => {
+    setCurrentProjectId(prj.id);
+    setDescription(prj.description);
+    setAspectRatio(prj.aspectRatio);
+    setImageSize(prj.imageSize);
+    setImageOptions(prj.imageOptions);
+    setSelectedImageIndex(prj.selectedImageIndex);
+    setEditHistory(prj.editHistory || [prj.selectedImageIndex ?? 0]);
+    setHistoryPointer(prj.historyPointer ?? 0);
+    
+    if (prj.videoBlob) {
+       setVideoBlob(prj.videoBlob);
+       setVideoUrl(URL.createObjectURL(prj.videoBlob));
+    } else {
+       setVideoBlob(null);
+       setVideoUrl(null);
+    }
+    setEditPrompt('');
+    setShowProjects(false);
+  };
+
+  const handleSelectImage = async (index: number) => {
+    const newHistory = editHistory.slice(0, historyPointer + 1);
+    // Don't push duplicates if they click the same image twice in a row
+    if (newHistory[newHistory.length - 1] !== index) {
+       newHistory.push(index);
+    }
+    
+    setSelectedImageIndex(index);
+    setEditHistory(newHistory);
+    setHistoryPointer(newHistory.length - 1);
+
+    if (currentProjectId) {
+      await saveProject({
+        id: currentProjectId,
+        title: description.trim().substring(0, 30) || 'Untitled Design',
+        description,
+        aspectRatio,
+        imageSize,
+        imageOptions,
+        selectedImageIndex: index,
+        videoBlob,
+        updatedAt: Date.now(),
+        editHistory: newHistory,
+        historyPointer: newHistory.length - 1,
+      });
+    }
+  };
+
+  const handleUndo = async () => {
+     if (historyPointer > 0) {
+        const newPointer = historyPointer - 1;
+        const prevIndex = editHistory[newPointer];
+        setSelectedImageIndex(prevIndex);
+        setHistoryPointer(newPointer);
+        
+        if (currentProjectId) {
+          await saveProject({
+            id: currentProjectId,
+            title: description.trim().substring(0, 30) || 'Untitled Design',
+            description,
+            aspectRatio,
+            imageSize,
+            imageOptions,
+            selectedImageIndex: prevIndex,
+            videoBlob,
+            updatedAt: Date.now(),
+            editHistory,
+            historyPointer: newPointer,
+          });
+        }
+     }
+  };
+
+  const handleRedo = async () => {
+     if (historyPointer < editHistory.length - 1) {
+        const newPointer = historyPointer + 1;
+        const nextIndex = editHistory[newPointer];
+        setSelectedImageIndex(nextIndex);
+        setHistoryPointer(newPointer);
+
+        if (currentProjectId) {
+          await saveProject({
+            id: currentProjectId,
+            title: description.trim().substring(0, 30) || 'Untitled Design',
+            description,
+            aspectRatio,
+            imageSize,
+            imageOptions,
+            selectedImageIndex: nextIndex,
+            videoBlob,
+            updatedAt: Date.now(),
+            editHistory,
+            historyPointer: newPointer,
+          });
+        }
+     }
+  };
+
+  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await deleteProject(id);
+    setProjectsList(prev => prev.filter(p => p.id !== id));
+    if (currentProjectId === id) {
+      startNewProject();
+      setShowProjects(true); // stay on dashboard
     }
   };
 
@@ -167,6 +435,76 @@ export default function App() {
     );
   }
 
+  if (showProjects) {
+    return (
+      <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative font-['Helvetica_Neue',Arial,sans-serif]" 
+           style={{ 
+              backgroundColor: '#0f111a', 
+              backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(100, 149, 237, 0.3) 0%, transparent 40%), radial-gradient(circle at 90% 10%, rgba(138, 43, 226, 0.3) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(0, 255, 127, 0.2) 0%, transparent 50%)' 
+           }}>
+        <div className="w-full max-w-[1240px] h-full md:h-[800px] max-h-[calc(100vh-2rem)] backdrop-blur-[20px] bg-white/[0.03] border border-white/10 rounded-[32px] overflow-hidden flex flex-col shadow-2xl text-white p-8">
+          
+          <div className="flex justify-between items-center mb-10 shrink-0">
+            <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                  <FolderHeart className="text-[#4facfe]" size={24} />
+               </div>
+               <div>
+                 <h1 className="text-2xl font-bold tracking-tight">Saved Designs</h1>
+                 <p className="text-sm text-white/50">Pick up where you left off</p>
+               </div>
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => setShowProjects(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
+                <X size={16} /> Close
+              </button>
+              <button onClick={startNewProject} className="px-5 py-2.5 bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                <Plus size={16} /> New Design
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto pr-2 pb-8">
+            {projectsList.length === 0 ? (
+               <div className="h-full flex flex-col items-center justify-center text-white/30 space-y-4">
+                 <LayoutGrid size={48} className="opacity-50" />
+                 <p className="text-lg">No saved designs found.</p>
+               </div>
+            ) : (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {projectsList.map(p => (
+                   <div key={p.id} onClick={() => loadProject(p)} className="group cursor-pointer bg-white/5 backdrop-blur-md p-5 rounded-[24px] border border-white/10 hover:border-[#4facfe]/50 hover:bg-white/10 transition-all flex flex-col overflow-hidden relative shadow-lg hover:shadow-[0_0_30px_rgba(79,172,254,0.15)]">
+                     <div className="w-full aspect-square bg-black/40 rounded-[16px] mb-5 overflow-hidden relative border border-white/5">
+                       {p.imageOptions && p.imageOptions.length > 0 && p.selectedImageIndex !== null ? (
+                         <img src={p.imageOptions[p.selectedImageIndex].url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-white/20"><ImageIcon size={32}/></div>
+                       )}
+                       {p.videoBlob && (
+                         <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md rounded-full p-2 border border-white/20">
+                           <Film size={14} className="text-[#00f2fe]" />
+                         </div>
+                       )}
+                     </div>
+                     <div className="flex justify-between items-start gap-4 flex-1">
+                        <div>
+                          <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
+                          <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
+                        </div>
+                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                          <Trash2 size={16} />
+                        </button>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative font-['Helvetica_Neue',Arial,sans-serif]" 
          style={{ 
@@ -178,9 +516,18 @@ export default function App() {
         
         {/* Left Panel: Controls */}
         <div className="w-full md:w-[360px] lg:w-[400px] border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 overflow-y-auto">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="w-3 h-3 rounded-[3px] bg-gradient-to-br from-[#00f2fe] to-[#4facfe]"></div>
-            <h1 className="text-[20px] font-extrabold tracking-tight uppercase">LOGOSONIC</h1>
+          <div className="mb-8 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-[3px] bg-gradient-to-br from-[#00f2fe] to-[#4facfe]"></div>
+              <h1 className="text-[20px] font-extrabold tracking-tight uppercase">SOLODESIGN</h1>
+            </div>
+            <button 
+              onClick={() => setShowProjects(true)}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:text-[#4facfe] transition-colors"
+              title="Saved Designs"
+            >
+              <FolderHeart size={18} />
+            </button>
           </div>
 
           <div className="space-y-5 flex-1 flex flex-col">
@@ -230,11 +577,50 @@ export default function App() {
               </div>
             </section>
 
+            {/* Refine Section */}
+            <section className={`bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5 transition-opacity ${imageOptions.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 block">
+                  Refine Selected Design
+                </label>
+                <div className="flex gap-1">
+                  <button 
+                    onClick={handleUndo} 
+                    disabled={historyPointer <= 0}
+                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Undo2 size={14} />
+                  </button>
+                  <button 
+                    onClick={handleRedo} 
+                    disabled={historyPointer >= editHistory.length - 1}
+                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Redo2 size={14} />
+                  </button>
+                </div>
+              </div>
+              <textarea
+                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] transition-all resize-none h-[60px] text-sm"
+                placeholder="e.g., Change accent colors to gold, make it sharper..."
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+              />
+              <button
+                onClick={editLogo}
+                disabled={!editPrompt.trim() || isEditingImage || imageOptions.length === 0}
+                className="w-full mt-3 py-[10px] px-4 bg-white/10 border border-white/20 text-white font-medium rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[13px]"
+              >
+                {isEditingImage ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={16} />}
+                {isEditingImage ? 'Applying Edit...' : 'Apply Edit'}
+              </button>
+            </section>
+
             {/* Action Section */}
             <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5 flex flex-col mt-auto gap-3">
               <button
                 onClick={generateLogo}
-                disabled={!description.trim() || isGeneratingImage || isGeneratingVideo}
+                disabled={!description.trim() || isGeneratingImage || isGeneratingVideo || isEditingImage}
                 className="w-full py-[16px] px-6 bg-white text-black font-semibold rounded-[12px] hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[15px]"
               >
                 {isGeneratingImage ? <Loader2 className="animate-spin" size={18} /> : <ImageIcon size={18} />}
@@ -243,7 +629,7 @@ export default function App() {
 
               <button
                 onClick={animateLogo}
-                disabled={!imageData || isGeneratingVideo || isGeneratingImage}
+                disabled={imageOptions.length === 0 || selectedImageIndex === null || isGeneratingVideo || isGeneratingImage || isEditingImage}
                 className="w-full py-[14px] px-6 bg-[#4facfe]/15 border border-[#4facfe]/50 text-white font-medium rounded-[12px] hover:bg-[#4facfe]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 flex items-center justify-center gap-2 text-[14px]"
               >
                 {isGeneratingVideo ? <Loader2 className="animate-spin" size={18} /> : <Film size={18} />}
@@ -258,7 +644,7 @@ export default function App() {
           <div className="w-full h-full bg-black/20 rounded-[20px] border border-white/5 flex flex-col relative overflow-hidden">
             
             <div className="px-6 py-5 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
-              <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoUrl ? 'Final_Render.mp4' : imageUrl ? 'Draft_04_Render.png' : 'Awaiting_Prompt...'}</h2>
+              <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoUrl ? 'Final_Render.mp4' : imageOptions.length > 0 ? `Draft_Option_0${(selectedImageIndex || 0) + 1}.png` : 'Awaiting_Prompt...'}</h2>
               <div className="flex gap-2">
                 <div className="w-8 h-8 bg-white/10 rounded-md"></div>
                 <div className="w-8 h-8 bg-white/10 rounded-md"></div>
@@ -267,7 +653,7 @@ export default function App() {
 
             <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
               <AnimatePresence mode="wait">
-                {(isGeneratingImage || isGeneratingVideo) ? (
+                {(isGeneratingImage || isGeneratingVideo || isEditingImage) ? (
                   <motion.div 
                     key="loading"
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -309,20 +695,40 @@ export default function App() {
                       <Download size={16} /> Download Delivery
                     </a>
                   </motion.div>
-                ) : imageUrl ? (
+                ) : (imageOptions.length > 0 && selectedImageIndex !== null) ? (
                    <motion.div 
                     key="image-result"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full h-full flex items-center justify-center z-10 p-6 relative"
+                    className="w-full h-full flex flex-col justify-between items-center z-10 p-2 relative"
                   >
-                    <img 
-                      src={imageUrl} 
-                      alt="Generated Logo" 
-                      className="object-contain max-h-full max-w-full rounded-[24px] shadow-2xl"
-                    />
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 px-5 py-2.5 bg-white/10 backdrop-blur-[10px] border border-white/20 rounded-full text-[12px] flex items-center gap-2 text-white/90 shadow-xl">
-                        Standby for Motion Processing...
+                    <div className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 px-4 overflow-hidden relative group">
+                      <img 
+                        src={imageOptions[selectedImageIndex].url} 
+                        alt="Selected Option" 
+                        className="object-contain max-h-full max-w-full rounded-[24px] shadow-2xl"
+                      />
+                      <a 
+                        href={imageOptions[selectedImageIndex].url}
+                        download={`solodesign-variant-${selectedImageIndex + 1}.png`}
+                        className="absolute top-4 right-8 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white rounded-full text-sm font-semibold shadow-xl"
+                      >
+                        <Download size={16} /> Save 
+                      </a>
+                    </div>
+                    <div className="flex gap-4 shrink-0 overflow-x-auto pb-4 justify-center w-full px-4">
+                       {imageOptions.map((opt, i) => (
+                         <button 
+                           key={i} 
+                           onClick={() => handleSelectImage(i)}
+                           className={`relative shrink-0 w-20 h-20 md:w-24 md:h-24 rounded-[12px] overflow-hidden border-[3px] transition-all bg-black/50 ${
+                             selectedImageIndex === i ? 'border-[#4facfe] shadow-[0_0_20px_rgba(79,172,254,0.4)] scale-105' : 'border-transparent opacity-50 hover:opacity-100 hover:border-white/30'
+                           }`}
+                         >
+                           <img src={opt.url} className="w-full h-full object-cover" />
+                           <div className="absolute top-1 left-1 bg-black/60 rounded px-1.5 py-0.5 text-[9px] font-bold">0{i+1}</div>
+                         </button>
+                       ))}
                     </div>
                   </motion.div>
                 ) : (
@@ -346,7 +752,7 @@ export default function App() {
               <div className="text-white/40 text-[11px] uppercase tracking-widest">
                  Resolution: {imageSize} | Format: {aspectRatio}
               </div>
-              {(isGeneratingImage || isGeneratingVideo) && (
+              {(isGeneratingImage || isGeneratingVideo || isEditingImage) && (
                 <div className="w-[100px] h-1 bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full w-1/2 bg-[#4facfe] rounded-full animate-pulse mx-auto"></div>
                 </div>
