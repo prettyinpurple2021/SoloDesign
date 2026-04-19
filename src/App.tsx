@@ -822,16 +822,16 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-8 flex items-center justify-center relative font-['Helvetica_Neue',Arial,sans-serif]" 
+    <div className="min-h-screen p-4 md:p-8 flex items-start md:items-center justify-center relative font-['Helvetica_Neue',Arial,sans-serif]" 
          style={{ 
             backgroundColor: '#0f111a', 
             backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(100, 149, 237, 0.3) 0%, transparent 40%), radial-gradient(circle at 90% 10%, rgba(138, 43, 226, 0.3) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(0, 255, 127, 0.2) 0%, transparent 50%)' 
          }}>
       
-      <div className="w-full max-w-[1240px] h-full md:h-[800px] max-h-[calc(100vh-2rem)] backdrop-blur-[20px] bg-white/[0.03] border border-white/10 rounded-[32px] overflow-hidden flex flex-col md:flex-row shadow-2xl text-white">
+      <div className="w-full max-w-[1240px] flex flex-col md:flex-row md:h-[800px] md:max-h-[calc(100vh-2rem)] backdrop-blur-[20px] bg-white/[0.03] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl text-white">
         
         {/* Left Panel: Controls */}
-        <div className="w-full md:w-[360px] lg:w-[400px] border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col shrink-0 overflow-y-auto">
+        <div className="w-full md:w-[360px] lg:w-[400px] border-b md:border-b-0 md:border-r border-white/5 p-6 flex flex-col md:shrink-0 overflow-visible md:overflow-y-auto">
           <div className="mb-8 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 rounded-[3px] bg-gradient-to-br from-[#00f2fe] to-[#4facfe]"></div>
@@ -1121,7 +1121,7 @@ export default function App() {
         </div>
 
         {/* Right Panel: Output & Preview */}
-        <div className="flex-1 p-6 relative flex flex-col min-h-0 bg-black/10">
+        <div className="flex-1 min-h-[500px] md:min-h-0 p-6 relative flex flex-col bg-black/10">
           <div className="w-full h-full bg-black/20 rounded-[20px] border border-white/5 flex flex-col relative overflow-hidden">
             
             <div className="px-6 py-5 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
