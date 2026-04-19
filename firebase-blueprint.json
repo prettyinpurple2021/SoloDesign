@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "User's logo design project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "imageSize": { "type": "string" },
+        "selectedImageIndex": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "editHistory": { "type": "array" },
+        "historyPointer": { "type": "number" },
+        "palette": { "type": "array" },
+        "watermarkEnabled": { "type": "boolean" },
+        "watermarkText": { "type": "string" }
+      },
+      "required": ["userId", "title", "updatedAt"]
+    },
+    "ProjectImage": {
+      "title": "Project Image Variant",
+      "description": "A generated image option for a project",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "base64": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "url": { "type": "string" }
+      },
+      "required": ["userId", "base64", "mimeType"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "User projects"
+    },
+    "/projects/{projectId}/images/{imageIndex}": {
+      "schema": { "$ref": "#/entities/ProjectImage" },
+      "description": "Project image variants separated to avoid 1MB document limit"
+    }
+  }
+}

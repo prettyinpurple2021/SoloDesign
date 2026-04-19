@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2 } from 'lucide-react';
+import { loginWithGoogle, logoutUser, auth } from './lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { saveProject, getProjects, deleteProject, Project } from './lib/db';
 
 export default function App() {
   const [hasKey, setHasKey] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
@@ -25,6 +29,15 @@ export default function App() {
   const [editHistory, setEditHistory] = useState<number[]>([]);
   const [historyPointer, setHistoryPointer] = useState<number>(-1);
   
+  const [palette, setPalette] = useState<string[]>([]);
+  const [palettePrompt, setPalettePrompt] = useState<string>('');
+  const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
+
+  const [watermarkEnabled, setWatermarkEnabled] = useState(false);
+  const [watermarkText, setWatermarkText] = useState('SOLODESIGN');
+  const [watermarkOpacity, setWatermarkOpacity] = useState(0.7);
+  const [watermarkedImageUrl, setWatermarkedImageUrl] = useState<string | null>(null);
+
   const [showProjects, setShowProjects] = useState(false);
   const [projectsList, setProjectsList] = useState<Project[]>([]);
 
@@ -36,13 +49,63 @@ export default function App() {
       }
     };
     checkKey();
+
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthReady(true);
+    });
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (showProjects) {
+    if (showProjects && user) {
       getProjects().then(setProjectsList);
     }
-  }, [showProjects]);
+  }, [showProjects, user]);
+
+  useEffect(() => {
+    if (selectedImageIndex !== null && imageOptions[selectedImageIndex]) {
+      if (!watermarkEnabled) {
+        setWatermarkedImageUrl(null);
+        return;
+      }
+
+      const originalUrl = imageOptions[selectedImageIndex].url;
+      const applyCanvasWatermark = async () => {
+        const result = await new Promise<string>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(originalUrl);
+
+            ctx.drawImage(img, 0, 0);
+
+            const fontSize = Math.max(20, img.width * 0.04);
+            ctx.font = `bold ${fontSize}px Helvetica Neue, Arial, sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = `rgba(255, 255, 255, ${watermarkOpacity})`;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillText(watermarkText || 'WATERMARK', img.width - (fontSize * 0.8), img.height - (fontSize * 0.8));
+
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.src = originalUrl;
+        });
+        setWatermarkedImageUrl(result);
+      };
+      applyCanvasWatermark();
+    } else {
+      setWatermarkedImageUrl(null);
+    }
+  }, [selectedImageIndex, imageOptions, watermarkEnabled, watermarkText, watermarkOpacity]);
 
   const requestKey = async () => {
     if (typeof window !== 'undefined' && (window as any).aistudio?.openSelectKey) {
@@ -65,9 +128,9 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompts = [
-        `A professional company logo. Clean, minimalist, and sleek. Description: ${description}. White background or transparent-like clean studio setup.`,
-        `A professional company logo. Bold, vibrant, and highly expressive. Description: ${description}. White background or transparent-like clean studio setup.`,
-        `A professional company logo. Abstract, geometric, and conceptual. Description: ${description}. White background or transparent-like clean studio setup.`
+        `A professional company logo. Clean, minimalist, and sleek. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`,
+        `A professional company logo. Bold, vibrant, and highly expressive. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`,
+        `A professional company logo. Abstract, geometric, and conceptual. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`
       ];
 
       const promises = prompts.map(prompt => 
@@ -117,6 +180,10 @@ export default function App() {
           updatedAt: Date.now(),
           editHistory: [0],
           historyPointer: 0,
+          palette,
+          watermarkEnabled,
+          watermarkText,
+          watermarkOpacity,
         });
       }
     } catch (err: any) {
@@ -152,7 +219,7 @@ export default function App() {
                 mimeType: sourceImage.mimeType
               }
             },
-            { text: editPrompt }
+            { text: `${editPrompt}${palette.length > 0 ? `. Apply this color palette: ${palette.join(', ')}.` : ''}` }
           ],
         },
         config: {
@@ -191,6 +258,10 @@ export default function App() {
           updatedAt: Date.now(),
           editHistory: newHistory,
           historyPointer: newHistory.length - 1,
+          palette,
+          watermarkEnabled,
+          watermarkText,
+          watermarkOpacity,
         });
       }
     } catch (err: any) {
@@ -263,6 +334,10 @@ export default function App() {
           updatedAt: Date.now(),
           editHistory,
           historyPointer,
+          palette,
+          watermarkEnabled,
+          watermarkText,
+          watermarkOpacity,
         });
       } else {
         throw new Error('No video URI returned.');
@@ -289,6 +364,10 @@ export default function App() {
     setSelectedImageIndex(null);
     setEditHistory([]);
     setHistoryPointer(-1);
+    setPalette([]);
+    setPalettePrompt('');
+    setWatermarkEnabled(false);
+    setWatermarkText('SOLODESIGN');
     setVideoUrl(null);
     setVideoBlob(null);
     setEditPrompt('');
@@ -304,6 +383,9 @@ export default function App() {
     setSelectedImageIndex(prj.selectedImageIndex);
     setEditHistory(prj.editHistory || [prj.selectedImageIndex ?? 0]);
     setHistoryPointer(prj.historyPointer ?? 0);
+    setPalette(prj.palette || []);
+    setWatermarkEnabled(prj.watermarkEnabled || false);
+    setWatermarkText(prj.watermarkText || 'SOLODESIGN');
     
     if (prj.videoBlob) {
        setVideoBlob(prj.videoBlob);
@@ -340,6 +422,10 @@ export default function App() {
         updatedAt: Date.now(),
         editHistory: newHistory,
         historyPointer: newHistory.length - 1,
+        palette,
+        watermarkEnabled,
+        watermarkText,
+        watermarkOpacity,
       });
     }
   };
@@ -364,6 +450,10 @@ export default function App() {
             updatedAt: Date.now(),
             editHistory,
             historyPointer: newPointer,
+            palette,
+            watermarkEnabled,
+            watermarkText,
+            watermarkOpacity,
           });
         }
      }
@@ -389,9 +479,153 @@ export default function App() {
             updatedAt: Date.now(),
             editHistory,
             historyPointer: newPointer,
+            palette,
+            watermarkEnabled,
+            watermarkText,
+            watermarkOpacity,
           });
         }
      }
+  };
+
+  const generateColors = async (mode: 'text' | 'image') => {
+    setIsGeneratingPalette(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      let parts: any[] = [];
+      
+      if (mode === 'text') {
+        parts = [{ text: `You are an expert color designer. Suggest a beautiful color palette of exactly 5 hex codes based on this description: "${palettePrompt}". Respond ONLY with a JSON array of strings, e.g. ["#FFFFFF", "#000000", ...].` }];
+      } else if (mode === 'image' && selectedImageIndex !== null && imageOptions[selectedImageIndex]) {
+        const sourceImage = imageOptions[selectedImageIndex];
+        parts = [
+          { inlineData: { data: sourceImage.base64, mimeType: sourceImage.mimeType } },
+          { text: `You are an expert color designer. Extract a beautiful color palette of exactly 5 hex codes from this image. Respond ONLY with a JSON array of strings, e.g. ["#FFFFFF", "#000000", ...].` }
+        ];
+      }
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: { parts },
+      });
+      
+      const text = response.text || '';
+      const match = text.match(/\[(.*?)\]/s);
+      
+      if (match) {
+        const parsed = JSON.parse(`[${match[1]}]`);
+        if (Array.isArray(parsed)) {
+          setPalette(parsed);
+          
+          if (currentProjectId) {
+            await saveProject({
+              id: currentProjectId,
+              title: description.trim().substring(0, 30) || 'Untitled Design',
+              description,
+              aspectRatio,
+              imageSize,
+              imageOptions,
+              selectedImageIndex,
+              videoBlob,
+              updatedAt: Date.now(),
+              editHistory,
+              historyPointer,
+              palette: parsed,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to generate palette:', err);
+    } finally {
+      setIsGeneratingPalette(false);
+    }
+  };
+
+  const handlePaletteAdd = async (color: string) => {
+     const newPalette = [...palette, color];
+     setPalette(newPalette);
+     if (currentProjectId) {
+         await saveProject({
+            id: currentProjectId,
+            title: description.trim().substring(0, 30) || 'Untitled Design',
+            description,
+            aspectRatio,
+            imageSize,
+            imageOptions,
+            selectedImageIndex,
+            videoBlob,
+            updatedAt: Date.now(),
+            editHistory,
+            historyPointer,
+            palette: newPalette,
+         });
+     }
+  };
+
+  const handlePaletteRemove = async (indexToRemove: number) => {
+     const newPalette = palette.filter((_, idx) => idx !== indexToRemove);
+     setPalette(newPalette);
+     if (currentProjectId) {
+         await saveProject({
+            id: currentProjectId,
+            title: description.trim().substring(0, 30) || 'Untitled Design',
+            description,
+            aspectRatio,
+            imageSize,
+            imageOptions,
+            selectedImageIndex,
+            videoBlob,
+            updatedAt: Date.now(),
+            editHistory,
+            historyPointer,
+            palette: newPalette,
+         });
+     }
+  };
+
+  const toggleWatermark = async () => {
+    const newState = !watermarkEnabled;
+    setWatermarkEnabled(newState);
+    if (currentProjectId) {
+      await saveProject({
+        id: currentProjectId,
+        title: description.trim().substring(0, 30) || 'Untitled Design',
+        description,
+        aspectRatio,
+        imageSize,
+        imageOptions,
+        selectedImageIndex,
+        videoBlob,
+        updatedAt: Date.now(),
+        editHistory,
+        historyPointer,
+        palette,
+        watermarkEnabled: newState,
+        watermarkText,
+      });
+    }
+  };
+
+  const handleWatermarkBlur = async () => {
+    if (currentProjectId) {
+      await saveProject({
+        id: currentProjectId,
+        title: description.trim().substring(0, 30) || 'Untitled Design',
+        description,
+        aspectRatio,
+        imageSize,
+        imageOptions,
+        selectedImageIndex,
+        videoBlob,
+        updatedAt: Date.now(),
+        editHistory,
+        historyPointer,
+        palette,
+        watermarkEnabled,
+        watermarkText,
+      });
+    }
   };
 
   const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
@@ -403,6 +637,42 @@ export default function App() {
       setShowProjects(true); // stay on dashboard
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 relative font-['Helvetica_Neue',Arial,sans-serif]" style={{ backgroundColor: '#0f111a' }}>
+        <Loader2 className="animate-spin text-white/50" size={32} />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 relative font-['Helvetica_Neue',Arial,sans-serif]" 
+           style={{ 
+             backgroundColor: '#0f111a', 
+             backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(100, 149, 237, 0.3) 0%, transparent 40%), radial-gradient(circle at 90% 10%, rgba(138, 43, 226, 0.3) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(0, 255, 127, 0.2) 0%, transparent 50%)' 
+           }}>
+        <div className="max-w-sm w-full bg-white/[0.03] backdrop-blur-[20px] border border-white/10 rounded-[32px] p-8 text-center space-y-6 shadow-2xl text-white">
+          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto text-[#4facfe]">
+            <KeyRound size={28} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Welcome to SoloDesign</h2>
+            <p className="text-white/60 text-sm">
+              Please sign in to manage, export, and sync your personalized creative portfolio across devices.
+            </p>
+          </div>
+          <button
+            onClick={loginWithGoogle}
+            className="w-full py-4 px-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+          >
+            Sign in with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasKey) {
     return (
@@ -521,13 +791,22 @@ export default function App() {
               <div className="w-3 h-3 rounded-[3px] bg-gradient-to-br from-[#00f2fe] to-[#4facfe]"></div>
               <h1 className="text-[20px] font-extrabold tracking-tight uppercase">SOLODESIGN</h1>
             </div>
-            <button 
-              onClick={() => setShowProjects(true)}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:text-[#4facfe] transition-colors"
-              title="Saved Designs"
-            >
-              <FolderHeart size={18} />
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowProjects(true)}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:text-[#4facfe] transition-colors"
+                title="Saved Designs"
+              >
+                <FolderHeart size={18} />
+              </button>
+              <button 
+                onClick={logoutUser}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                title="Sign Out"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-5 flex-1 flex flex-col">
@@ -573,6 +852,104 @@ export default function App() {
                     <option value="2K">2K Super</option>
                     <option value="4K">4K Ultra</option>
                   </select>
+                </div>
+              </div>
+            </section>
+
+            {/* Brand Colors Section */}
+            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-3 block">
+                Brand Colors (Optional)
+              </label>
+              
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {palette.map((color, i) => (
+                  <div key={i} className="relative group w-8 h-8 rounded-full border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)]" style={{ backgroundColor: color }}>
+                    <button 
+                      onClick={() => handlePaletteRemove(i)}
+                      className="absolute -top-1 -right-1 bg-red-500/90 hover:bg-red-500 text-white rounded-full w-[18px] h-[18px] flex items-center justify-center opacity-0 group-hover:opacity-100 text-[10px] transition-all backdrop-blur-md"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))}
+                {palette.length < 6 && (
+                   <div className="relative w-8 h-8 rounded-full border border-dashed border-white/30 flex items-center justify-center hover:bg-white/10 cursor-pointer transition-colors group">
+                      <input type="color" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={(e) => handlePaletteAdd(e.target.value)} />
+                      <Plus size={14} className="text-white/50 group-hover:text-white" />
+                   </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                   <input 
+                      type="text" 
+                      placeholder="AI Palette (e.g. Neo Tokyo)" 
+                      value={palettePrompt}
+                      onChange={(e) => setPalettePrompt(e.target.value)}
+                      className="flex-1 bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all"
+                   />
+                   <button 
+                      onClick={() => generateColors('text')}
+                      disabled={isGeneratingPalette || !palettePrompt.trim()}
+                      className="px-3.5 py-2.5 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 disabled:opacity-50 flex items-center justify-center transition-colors"
+                      title="Suggest colors from text"
+                   >
+                     {isGeneratingPalette ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                   </button>
+                </div>
+                <button 
+                   onClick={() => generateColors('image')}
+                   disabled={isGeneratingPalette || imageOptions.length === 0 || selectedImageIndex === null}
+                   className="w-full py-2.5 bg-white/5 border border-white/10 text-white/70 text-[12px] rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                   <ImageIcon size={14} /> Extract from Selected Image
+                </button>
+              </div>
+            </section>
+
+            {/* Watermark Section */}
+            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 block">
+                  Watermark
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-[2px]">{watermarkEnabled ? 'On' : 'Off'}</span>
+                  <button
+                    onClick={toggleWatermark}
+                    className={`shrink-0 w-8 h-4 rounded-full flex items-center transition-colors px-0.5 ${watermarkEnabled ? 'bg-[#4facfe]' : 'bg-white/20'}`}
+                  >
+                    <div className={`w-3 h-3 bg-white rounded-full transition-transform ${watermarkEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+              <div className={`transition-opacity ${watermarkEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'} space-y-3`}>
+                <input 
+                  type="text" 
+                  placeholder="Custom Watermark Text" 
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  onBlur={handleWatermarkBlur}
+                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all"
+                />
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] uppercase text-white/50 tracking-wider">Opacity</label>
+                    <span className="text-[10px] text-white/50 font-mono">{Math.round(watermarkOpacity * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.05"
+                    value={watermarkOpacity}
+                    onChange={(e) => setWatermarkOpacity(parseFloat(e.target.value))}
+                    onMouseUp={handleWatermarkBlur}
+                    onTouchEnd={handleWatermarkBlur}
+                    className="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-[#4facfe] [&::-webkit-slider-thumb]:rounded-full"
+                  />
                 </div>
               </div>
             </section>
@@ -704,13 +1081,13 @@ export default function App() {
                   >
                     <div className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 px-4 overflow-hidden relative group">
                       <img 
-                        src={imageOptions[selectedImageIndex].url} 
+                        src={watermarkedImageUrl || imageOptions[selectedImageIndex].url} 
                         alt="Selected Option" 
                         className="object-contain max-h-full max-w-full rounded-[24px] shadow-2xl"
                       />
                       <a 
-                        href={imageOptions[selectedImageIndex].url}
-                        download={`solodesign-variant-${selectedImageIndex + 1}.png`}
+                        href={watermarkedImageUrl || imageOptions[selectedImageIndex].url}
+                        download={`solodesign-variant-${selectedImageIndex + 1}${watermarkEnabled ? '-watermarked' : ''}.png`}
                         className="absolute top-4 right-8 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 text-white rounded-full text-sm font-semibold shadow-xl"
                       >
                         <Download size={16} /> Save 
