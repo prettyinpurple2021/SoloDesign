@@ -11,7 +11,7 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err && !res.headersSent) {
       console.error('Failed to serve index.html:', err);
-      res.status(500).send('Internal server error: Failed to load application');
+      res.status(500).send('Application temporarily unavailable');
     }
   });
 });
