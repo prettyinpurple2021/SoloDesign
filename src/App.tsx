@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
 import JSZip from 'jszip';
-import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2, Palette, Type, Volume2, Monitor, Smartphone, CreditCard, ChevronRight, Share2, Archive } from 'lucide-react';
+import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2, Palette, Type, Volume2, Monitor, Smartphone, CreditCard, ChevronRight, Share2, Archive, ShieldCheck } from 'lucide-react';
 import { loginWithGoogle, logoutUser, auth } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { saveProject, getProjects, deleteProject, Project, BrandKit } from './lib/db';
@@ -720,34 +720,6 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 relative font-['Helvetica_Neue',Arial,sans-serif]" style={{ backgroundColor: '#0f111a' }}>
         <Loader2 className="animate-spin text-white/50" size={32} />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 relative font-['Helvetica_Neue',Arial,sans-serif]" 
-           style={{ 
-             backgroundColor: '#0f111a', 
-             backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(100, 149, 237, 0.3) 0%, transparent 40%), radial-gradient(circle at 90% 10%, rgba(138, 43, 226, 0.3) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(0, 255, 127, 0.2) 0%, transparent 50%)' 
-           }}>
-        <div className="max-w-sm w-full bg-white/[0.03] backdrop-blur-[20px] border border-white/10 rounded-[32px] p-8 text-center space-y-6 shadow-2xl text-white">
-          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mx-auto text-[#4facfe]">
-            <KeyRound size={28} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold mb-2">Welcome to SoloDesign</h2>
-            <p className="text-white/60 text-sm">
-              Please sign in to manage, export, and sync your personalized creative portfolio across devices.
-            </p>
-          </div>
-          <button
-            onClick={loginWithGoogle}
-            className="w-full py-4 px-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-          >
-            Sign in with Google
-          </button>
-        </div>
       </div>
     );
   }
@@ -1504,72 +1476,282 @@ export default function App() {
   );
 }
 
+function CursorFollower() {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+    };
+    
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('.group')) {
+        setIsHovering(true);
+      } else {
+        setIsHovering(false);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseover', handleMouseOver);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseover', handleMouseOver);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 w-8 h-8 rounded-full border-2 border-[#4facfe] pointer-events-none z-[9999] hidden md:block mix-blend-difference"
+      animate={{
+        x: position.x - 16,
+        y: position.y - 16,
+        scale: isHovering ? 2.5 : 1,
+        backgroundColor: isHovering ? 'rgba(79, 172, 254, 0.4)' : 'rgba(79, 172, 254, 0)'
+      }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200, mass: 0.5 }}
+    />
+  );
+}
+
 function LandingPage({ onStart }: { onStart: () => void }) {
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#4facfe] selection:text-white items-center justify-center p-8 overflow-hidden relative">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#4facfe] selection:text-white overflow-x-hidden overflow-y-auto relative no-scrollbar cursor-none">
+      <CursorFollower />
       {/* Background Atmosphere */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-[20%] left-[10%] w-[40vw] h-[40vw] bg-[#4facfe] rounded-full opacity-[0.07] blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-[20%] right-[10%] w-[30vw] h-[30vw] bg-[#00f2fe] rounded-full opacity-[0.05] blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-[#4facfe] rounded-full opacity-[0.1] blur-[150px] animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#8A2BE2] rounded-full opacity-[0.1] blur-[150px] animate-pulse" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute top-[30%] right-[20%] w-[20vw] h-[20vw] bg-[#00f2fe] rounded-full opacity-[0.05] blur-[100px]"></div>
+        {/* Grain Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
       </div>
 
-      <div className="relative z-10 max-w-4xl w-full text-center">
+      {/* Hero Section */}
+      <section className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6 md:p-24 text-center">
         <motion.div
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ duration: 0.8 }}
+           initial={{ opacity: 0, scale: 0.9 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+           className="max-w-6xl w-full"
         >
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#00f2fe] to-[#4facfe] shadow-[0_0_20px_rgba(79,172,254,0.6)]"></div>
-            <span className="text-[14px] font-bold tracking-[0.3em] uppercase opacity-70">SOLODESIGN</span>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-center gap-3 mb-10"
+          >
+            <div className="px-4 py-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#00f2fe] animate-ping"></div>
+              <span className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70">Design Intelligence 3.1</span>
+            </div>
+          </motion.div>
           
-          <h1 className="text-[clamp(2.5rem,8vw,5.5rem)] font-extrabold leading-[0.9] tracking-tighter mb-8 uppercase italic selection:bg-white selection:text-black">
-            The next<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f2fe] via-[#4facfe] to-[#4facfe]">Generation</span><br />
-            of Identity
+          <h1 className="text-[clamp(3.5rem,12vw,10rem)] font-black leading-[0.8] tracking-[-0.07em] mb-12 uppercase italic text-white mix-blend-difference">
+            Studio<br />
+            <motion.span 
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4, duration: 1.5 }}
+              className="text-transparent bg-clip-text bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center"
+            >
+              Mastery
+            </motion.span>
           </h1>
 
-          <p className="text-[16px] md:text-[20px] text-white/50 max-w-xl mx-auto mb-12 font-medium leading-relaxed">
-            Generate high-end corporate identity, logos, and motion graphics with AI-driven precision. Professional tools for modern enterprise.
-          </p>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 1 }}
+            className="text-[18px] md:text-[26px] text-white/50 max-w-3xl mx-auto mb-16 font-light leading-relaxed tracking-tight"
+          >
+            Where advanced image synthesis meets cinematic motion architecture. SoloDesign is the definitive workspace for high-stakes visual identity.
+          </motion.p>
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="flex flex-col md:flex-row items-center justify-center gap-8"
+          >
             <button 
               onClick={onStart}
-              className="px-10 py-5 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] flex items-center gap-3 text-lg group"
+              className="px-14 py-7 bg-[#4facfe] text-white font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(79,172,254,0.4)] flex items-center gap-4 text-2xl group overflow-hidden relative"
             >
-              Get Started Free <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+              <span className="relative z-10">Start Project</span> 
+              <ChevronRight size={28} className="relative z-10 group-hover:translate-x-2 transition-transform duration-500" />
             </button>
-            <div className="px-6 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-xs font-semibold uppercase tracking-widest text-white/40 text-nowrap">
-              No Credit Card Required
+            
+            <div className="flex flex-col items-start text-left gap-1 border-l border-white/10 pl-8">
+               <div className="flex items-center gap-2">
+                 <div className="w-1.5 h-1.5 rounded-full bg-[#00ff7f]"></div>
+                 <span className="text-[11px] uppercase font-black tracking-[0.2em] text-white/60">System Online</span>
+               </div>
+               <span className="text-[14px] font-medium text-white/30">VEO 3.1 Fast-GPU Active</span>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
 
-        {/* Floating Examples */}
-        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 opacity-40 grayscale group hover:grayscale-0 transition-all duration-700">
-           {[1, 2, 3, 4].map(i => (
-             <motion.div 
-               key={i}
-               className="aspect-square bg-white/5 border border-white/10 rounded-[20px] overflow-hidden"
-               initial={{ opacity: 0, scale: 0.8 }}
-               animate={{ opacity: 1, scale: 1 }}
-               transition={{ delay: 0.2 * i }}
-             >
-               <img 
-                 src={`https://picsum.photos/seed/logo${i}/400/400`} 
-                 alt="Example Logo" 
-                 referrerPolicy="no-referrer"
-                 className="w-full h-full object-cover"
-               />
-             </motion.div>
-           ))}
+        {/* Scroll Indicator */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2, duration: 1 }}
+          className="absolute bottom-12 flex flex-col items-center gap-4 opacity-20"
+        >
+          <div className="w-[1px] h-24 bg-gradient-to-b from-white to-transparent"></div>
+        </motion.div>
+      </section>
+
+      {/* Grid Features */}
+      <section className="relative z-10 py-32 px-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-2 p-10 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[40px] flex flex-col justify-between group hover:border-[#4facfe]/50 transition-colors h-[400px]">
+             <div className="w-14 h-14 rounded-[20px] bg-white/5 flex items-center justify-center text-[#4facfe]">
+               <ImageIcon size={28} />
+             </div>
+             <div>
+               <h3 className="text-3xl font-black mb-4 uppercase italic">Advanced Synthesis</h3>
+               <p className="text-white/40 text-[16px] leading-relaxed">Multi-variant logo workflows with photorealistic 4K delivery. Designed for elite corporate assets.</p>
+             </div>
+          </div>
+          
+          {[
+            { icon: <Film />, title: "Motion Path", desc: "Cinematic 720p 60fps renders." },
+            { icon: <ShieldCheck />, title: "Vault Sync", desc: "Encrypted project history." },
+            { icon: <Archive />, title: "Brand Kit", desc: "Strategic delivery assets." },
+            { icon: <Monitor />, title: "Mockup View", desc: "Real-world site visualizer." }
+          ].map((f, i) => (
+            <div key={i} className="p-8 bg-white/[0.02] backdrop-blur-2xl border border-white/5 rounded-[40px] flex flex-col justify-between hover:bg-white/[0.05] transition-all">
+               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 mb-8">
+                 {f.icon}
+               </div>
+               <div>
+                  <h4 className="text-xl font-bold uppercase mb-2 italic tracking-tight">{f.title}</h4>
+                  <p className="text-white/30 text-[13px]">{f.desc}</p>
+               </div>
+            </div>
+          ))}
         </div>
-      </div>
+      </section>
+
+      {/* High-Fidelity Gallery */}
+      <section className="relative z-10 py-32 overflow-hidden bg-white/[0.01]">
+        <div className="px-6 mb-16 max-w-7xl mx-auto flex justify-between items-end">
+           <div>
+              <h2 className="text-5xl font-black uppercase italic tracking-tighter mix-blend-difference">Aura of Excellence</h2>
+              <p className="text-white/30 mt-2 font-medium">Recently deployed conceptual identities</p>
+           </div>
+           <div className="text-[10px] uppercase font-black tracking-[0.4em] text-white/20">Scroll to Explore</div>
+        </div>
+
+        <div className="flex whitespace-nowrap gap-10 animate-marquee group py-10">
+          {[1,2,3,4,5,6,1,2,3,4,5,6].map((i, idx) => (
+            <motion.div 
+              key={idx} 
+              whileHover={{ rotateY: -15, rotateX: 5, scale: 1.05 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+              className="w-[320px] h-[480px] md:w-[450px] md:h-[600px] shrink-0 bg-[#111] rounded-[48px] overflow-hidden border border-white/5 relative group/card cursor-none"
+            >
+               <img 
+                 src={`https://picsum.photos/seed/solovault-${i}${idx}/900/1200`} 
+                 className="w-full h-full object-cover grayscale brightness-75 group-hover/card:grayscale-0 group-hover/card:brightness-100 transition-all duration-1000" 
+                 alt="Branding Case"
+                 referrerPolicy="no-referrer"
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 group-hover/card:opacity-90 transition-opacity p-12 flex flex-col justify-end">
+                  <div className="flex items-center gap-3 mb-4">
+                     <div className="w-8 h-[1px] bg-[#4facfe]"></div>
+                     <span className="text-[#4facfe] text-[11px] uppercase font-black tracking-widest leading-none">Studio Case {idx + 1}</span>
+                  </div>
+                  <span className="text-3xl font-black uppercase italic leading-none tracking-tighter">Digital<br/>Vanguard</span>
+               </div>
+            </motion.div>
+          ))}
+        </div>
+        
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            animation: marquee 50s linear infinite;
+          }
+          .animate-marquee:hover {
+            animation-play-state: paused;
+          }
+          .vertical-rl {
+            writing-mode: vertical-rl;
+          }
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+          .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+        `}} />
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 py-64 px-6 text-center border-t border-white/5 bg-gradient-to-b from-transparent to-[#4facfe]/5">
+        <motion.div
+           initial={{ opacity: 0, y: 50 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true }}
+           className="max-w-4xl mx-auto"
+        >
+          <h2 className="text-[clamp(3rem,10vw,8rem)] font-black uppercase italic tracking-tighter mb-16 leading-[0.8]">
+            Built For<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#4facfe] to-white/20">The Visionary</span>
+          </h2>
+          <button 
+            onClick={onStart}
+            className="px-20 py-10 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all text-3xl uppercase italic tracking-widest shadow-[0_40px_120px_rgba(255,255,255,0.15)] group relative overflow-hidden"
+          >
+            <div className="absolute inset-x-0 bottom-0 h-2 bg-[#4facfe] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            Access The Lab
+          </button>
+        </motion.div>
+      </section>
+
+      <footer className="relative z-10 p-16 flex flex-col md:flex-row items-start justify-between gap-16 border-t border-white/5 bg-[#080808]">
+        <div className="space-y-8 max-w-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-6 h-6 rounded-lg bg-[#4facfe] rotate-45 shadow-[0_0_20px_rgba(79,172,254,0.5)]"></div>
+            <span className="text-[18px] font-black tracking-[0.4em] uppercase italic">SoloDesign</span>
+          </div>
+          <p className="text-white/20 text-sm font-medium leading-relaxed">
+            Leading the paradigm shift in automated high-end visual design. Built with cutting-edge synthesis architecture.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-24">
+           <div className="space-y-6">
+              <h5 className="text-[11px] uppercase font-black tracking-widest text-[#4facfe]">Resources</h5>
+              <div className="flex flex-col gap-3 text-sm text-white/30 font-bold uppercase tracking-tight italic">
+                 <a href="#" className="hover:text-white transition-colors">Documentation</a>
+                 <a href="#" className="hover:text-white transition-colors">API Specs</a>
+                 <a href="#" className="hover:text-white transition-colors">Studio News</a>
+              </div>
+           </div>
+           <div className="space-y-6">
+              <h5 className="text-[11px] uppercase font-black tracking-widest text-[#4facfe]">Enterprise</h5>
+              <div className="flex flex-col gap-3 text-sm text-white/30 font-bold uppercase tracking-tight italic">
+                 <a href="#" className="hover:text-white transition-colors">License Kit</a>
+                 <a href="#" className="hover:text-white transition-colors">Lab Support</a>
+                 <a href="#" className="hover:text-white transition-colors">Security</a>
+              </div>
+           </div>
+        </div>
+      </footer>
       
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] uppercase font-bold tracking-widest text-white/20 whitespace-nowrap">
-        Built for the future of professional branding &copy; 2024 SoloDesign
+      <div className="relative z-10 p-6 text-center text-[10px] uppercase font-black tracking-[0.8em] text-white/10 bg-[#080808] border-t border-white/[0.03]">
+        Architected by code and intelligence &copy; 2024.
       </div>
     </div>
   );
