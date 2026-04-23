@@ -6,11 +6,15 @@ export interface Project {
   userId?: string;
   title: string;
   description: string;
-  aspectRatio: '16:9' | '9:16';
+  aspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
   imageSize: '1K' | '2K' | '4K';
+  stylePreset?: string;
+  negativePrompt?: string;
   imageOptions: { base64: string; mimeType: string; url: string }[];
   selectedImageIndex: number | null;
   videoBlob: Blob | null;
+  videoOptions?: { blob: Blob; style: string; url?: string; }[];
+  selectedVideoIndex?: number | null;
   updatedAt: number;
   editHistory?: number[];
   historyPointer?: number;
@@ -68,8 +72,31 @@ export async function saveProject(project: Project): Promise<void> {
   }
 
   // Save Video file as chunks
-  if (videoBlob) {
-    const videoDataUrl = await blobToBase64(videoBlob);
+  if (project.videoOptions && project.videoOptions.length > 0) {
+    promises.push(setDoc(doc(db, `projects/${project.id}/video`, 'meta'), {
+      userId: user.uid,
+      multiCount: project.videoOptions.length
+    }));
+    for (let i = 0; i < project.videoOptions.length; i++) {
+      const vOpt = project.videoOptions[i];
+      if (!vOpt.blob) continue;
+      const videoDataUrl = await blobToBase64(vOpt.blob);
+      const numChunks = Math.ceil(videoDataUrl.length / CHUNK_SIZE);
+      
+      promises.push(setDoc(doc(db, `projects/${project.id}/video`, `meta_${i}`), {
+        userId: user.uid,
+        style: vOpt.style,
+        numChunks
+      }));
+      for (let c = 0; c < numChunks; c++) {
+        promises.push(setDoc(doc(db, `projects/${project.id}/video`, `chunk_${i}_${c}`), {
+          userId: user.uid,
+          data: videoDataUrl.slice(c * CHUNK_SIZE, (c + 1) * CHUNK_SIZE)
+        }));
+      }
+    }
+  } else if (project.videoBlob) {
+    const videoDataUrl = await blobToBase64(project.videoBlob);
     const numChunks = Math.ceil(videoDataUrl.length / CHUNK_SIZE);
     
     promises.push(setDoc(doc(db, `projects/${project.id}/video`, 'meta'), {
@@ -122,20 +149,42 @@ export async function getProjects(): Promise<Project[]> {
 
     // Fetch and reassemble video
     let videoBlob = null;
+    let videoOptions: { blob: Blob, style: string, url?: string }[] = [];
     const videoRef = collection(db, `projects/${document.id}/video`);
     const videoSnap = await getDocs(videoRef);
     const videoMetaDoc = videoSnap.docs.find(d => d.id === 'meta');
     
     if (videoMetaDoc) {
        const vMeta = videoMetaDoc.data();
-       let vDataUrl = '';
-       for (let c = 0; c < vMeta.numChunks; c++) {
-          const chunkDoc = videoSnap.docs.find(d => d.id === `chunk_${c}`);
-          if (chunkDoc) vDataUrl += chunkDoc.data().data;
-       }
-       if (vDataUrl) {
-          const res = await fetch(vDataUrl);
-          videoBlob = await res.blob();
+       if (vMeta.multiCount !== undefined) {
+          for (let i = 0; i < vMeta.multiCount; i++) {
+             const subMeta = videoSnap.docs.find(d => d.id === `meta_${i}`)?.data();
+             if (!subMeta) continue;
+             let vDataUrl = '';
+             for (let c = 0; c < subMeta.numChunks; c++) {
+                const chunkDoc = videoSnap.docs.find(d => d.id === `chunk_${i}_${c}`);
+                if (chunkDoc) vDataUrl += chunkDoc.data().data;
+             }
+             if (vDataUrl) {
+                const res = await fetch(vDataUrl);
+                const blob = await res.blob();
+                videoOptions.push({
+                   blob,
+                   style: subMeta.style,
+                   url: URL.createObjectURL(blob)
+                });
+             }
+          }
+       } else {
+          let vDataUrl = '';
+          for (let c = 0; c < vMeta.numChunks; c++) {
+             const chunkDoc = videoSnap.docs.find(d => d.id === `chunk_${c}`);
+             if (chunkDoc) vDataUrl += chunkDoc.data().data;
+          }
+          if (vDataUrl) {
+             const res = await fetch(vDataUrl);
+             videoBlob = await res.blob();
+          }
        }
     }
 
@@ -145,9 +194,13 @@ export async function getProjects(): Promise<Project[]> {
       description: data.description,
       aspectRatio: data.aspectRatio,
       imageSize: data.imageSize,
+      stylePreset: data.stylePreset,
+      negativePrompt: data.negativePrompt,
       imageOptions: imageOptions.filter(Boolean),
       selectedImageIndex: data.selectedImageIndex ?? null,
       videoBlob,
+      videoOptions,
+      selectedVideoIndex: data.selectedVideoIndex ?? null,
       updatedAt: data.updatedAt,
       editHistory: data.editHistory,
       historyPointer: data.historyPointer,

@@ -6,14 +6,27 @@ import { loginWithGoogle, logoutUser, auth } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { saveProject, getProjects, deleteProject, Project } from './lib/db';
 
+const STYLE_PRESETS = [
+  'Logo', 'Minimalist', 'Corporate', 'Futuristic', 'Vintage', '3D', 'Vector', 'Flat', 'Photorealistic', 'Artistic'
+];
+
+export interface InteractiveVideoOption {
+  style: string;
+  blob: Blob | null;
+  url: string | null;
+  isLoading?: boolean;
+}
+
 export default function App() {
   const [hasKey, setHasKey] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
-  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16'>('16:9');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '3:4' | '4:3' | '9:16' | '16:9'>('16:9');
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K');
+  const [stylePreset, setStylePreset] = useState<string>('Logo');
+  const [negativePrompt, setNegativePrompt] = useState<string>('');
   
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageOptions, setImageOptions] = useState<{ base64: string; mimeType: string; url: string }[]>([]);
@@ -25,6 +38,8 @@ export default function App() {
   const [editPrompt, setEditPrompt] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [videoOptions, setVideoOptions] = useState<InteractiveVideoOption[]>([]);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState<number | null>(null);
   const [generationAction, setGenerationAction] = useState<string>('');
   
   const [editHistory, setEditHistory] = useState<number[]>([]);
@@ -130,9 +145,9 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const prompts = [
-        `A professional company logo. Clean, minimalist, and sleek. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`,
-        `A professional company logo. Bold, vibrant, and highly expressive. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`,
-        `A professional company logo. Abstract, geometric, and conceptual. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}`
+        `A professional ${stylePreset} style company logo. Clean, minimalist, and sleek. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}${negativePrompt ? ` Elements to avoid: ${negativePrompt}` : ''}`,
+        `A professional ${stylePreset} style company logo. Bold, vibrant, and highly expressive. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}${negativePrompt ? ` Elements to avoid: ${negativePrompt}` : ''}`,
+        `A professional ${stylePreset} style company logo. Abstract, geometric, and conceptual. Description: ${description}. White background or transparent-like clean studio setup.${palette.length > 0 ? ` Use exactly this color palette: ${palette.join(', ')}.` : ''}${negativePrompt ? ` Elements to avoid: ${negativePrompt}` : ''}`
       ];
 
       const promises = prompts.map(prompt => 
@@ -176,6 +191,8 @@ export default function App() {
           description,
           aspectRatio,
           imageSize,
+          stylePreset,
+          negativePrompt,
           imageOptions: newOptions,
           selectedImageIndex: 0,
           videoBlob: null,
@@ -249,23 +266,11 @@ export default function App() {
         setHistoryPointer(newHistory.length - 1);
         setEditPrompt('');
         
-        await saveProject({
-          id: currentProjectId || crypto.randomUUID(),
-          title: description.trim().substring(0, 30) || 'Untitled Design',
-          description,
-          aspectRatio,
-          imageSize,
+        await saveCurrent({
           imageOptions: updatedOptions,
           selectedImageIndex: newIndex,
-          videoBlob,
-          updatedAt: Date.now(),
           editHistory: newHistory,
           historyPointer: newHistory.length - 1,
-          palette,
-          watermarkEnabled,
-          watermarkText,
-          watermarkOpacity,
-          animationPreset,
         });
       }
     } catch (err: any) {
@@ -290,63 +295,78 @@ export default function App() {
       setGenerationAction('Initializing video synthesis...');
 
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const styles = ['Subtle Fades', 'Dynamic Spins', 'Flowing Movements'];
       
-      let operation = await ai.models.generateVideos({
-        model: 'veo-3.1-fast-generate-preview',
-        prompt: `Animate this logo smoothly and professionally with a ${animationPreset} cinematic style. Ensure it looks high-end. Description context: ${description}`,
-        image: {
-          imageBytes: selectedImageData.base64,
-          mimeType: selectedImageData.mimeType
-        },
-        config: {
-          numberOfVideos: 1,
-          resolution: '720p',
-          aspectRatio: aspectRatio
+      const initialOptions = styles.map(style => ({ style, blob: null, url: null, isLoading: true }));
+      setVideoOptions(initialOptions);
+      setSelectedVideoIndex(0);
+
+      const promises = styles.map(async (style, index) => {
+        try {
+          let operation = await ai.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: `Animate this logo smoothly and professionally using a ${style} cinematic style. Ensure it looks high-end. Description context: ${description}`,
+            image: {
+              imageBytes: selectedImageData.base64,
+              mimeType: selectedImageData.mimeType
+            },
+            config: {
+              numberOfVideos: 1,
+              resolution: '720p',
+              aspectRatio: aspectRatio
+            }
+          });
+
+          // Staggered polling loop per video
+          while (!operation.done) {
+            await new Promise(r => setTimeout(r, 8000 + Math.random() * 2000));
+            operation = await ai.operations.getVideosOperation({ operation });
+          }
+
+          const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
+          if (uri) {
+            const response = await fetch(uri, {
+              method: 'GET',
+              headers: {
+                'x-goog-api-key': process.env.GEMINI_API_KEY as string,
+              },
+            });
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            
+            setVideoOptions(prev => {
+              const n = [...prev];
+              n[index] = { style, blob, url, isLoading: false };
+              return n;
+            });
+            return { style, blob, url };
+          }
+        } catch (err: any) {
+          console.error(`Failed video style ${style}:`, err);
+          setVideoOptions(prev => {
+             const n = [...prev];
+             n[index] = { style, blob: null, url: null, isLoading: false };
+             return n;
+          });
         }
+        return { style, blob: null, url: null };
       });
 
-      let dotCount = 0;
-      while (!operation.done) {
-        setGenerationAction(`Rendering animation${'.'.repeat((dotCount % 3) + 1)}`);
-        dotCount++;
-        await new Promise(r => setTimeout(r, 10000));
-        operation = await ai.operations.getVideosOperation({ operation });
+      setGenerationAction('Synthesizing 3 simultaneous styles...');
+      const results = await Promise.all(promises);
+      const finalOptions = results.map((r, i) => r || { style: styles[i], blob: null, url: null, isLoading: false });
+      
+      const firstSuccess = finalOptions.findIndex(o => o.url);
+      if (firstSuccess !== -1) {
+         setSelectedVideoIndex(firstSuccess);
       }
+      
+      const vOptionsForDb = finalOptions
+        .filter(opt => opt.blob)
+        .map(({ blob, style, url }) => ({ blob: blob as Blob, style, url: url as string }));
 
-      const uri = operation.response?.generatedVideos?.[0]?.video?.uri;
-      if (uri) {
-        setGenerationAction('Fetching final video file...');
-        const response = await fetch(uri, {
-          method: 'GET',
-          headers: {
-            'x-goog-api-key': process.env.GEMINI_API_KEY as string,
-          },
-        });
-        const blob = await response.blob();
-        setVideoBlob(blob);
-        setVideoUrl(URL.createObjectURL(blob));
-        
-        await saveProject({
-          id: currentProjectId || crypto.randomUUID(),
-          title: description.trim().substring(0, 30) || 'Untitled Design',
-          description,
-          aspectRatio,
-          imageSize,
-          imageOptions,
-          selectedImageIndex,
-          videoBlob: blob,
-          updatedAt: Date.now(),
-          editHistory,
-          historyPointer,
-          palette,
-          watermarkEnabled,
-          watermarkText,
-          watermarkOpacity,
-          animationPreset,
-        });
-      } else {
-        throw new Error('No video URI returned.');
-      }
+      await saveCurrent({ videoOptions: vOptionsForDb.length > 0 ? vOptionsForDb : undefined });
+
     } catch (err: any) {
       console.error(err);
       if (err.message && err.message.includes('Requested entity was not found')) {
@@ -365,6 +385,8 @@ export default function App() {
     setDescription('');
     setAspectRatio('16:9');
     setImageSize('1K');
+    setStylePreset('Logo');
+    setNegativePrompt('');
     setImageOptions([]);
     setSelectedImageIndex(null);
     setEditHistory([]);
@@ -376,6 +398,8 @@ export default function App() {
     setAnimationPreset('Subtle Zoom');
     setVideoUrl(null);
     setVideoBlob(null);
+    setVideoOptions([]);
+    setSelectedVideoIndex(null);
     setEditPrompt('');
     setShowProjects(false);
   };
@@ -395,15 +419,61 @@ export default function App() {
     setWatermarkOpacity(prj.watermarkOpacity ?? 0.7);
     setAnimationPreset(prj.animationPreset || 'Subtle Zoom');
     
-    if (prj.videoBlob) {
+    if (prj.videoOptions && prj.videoOptions.length > 0) {
+       setVideoOptions(prj.videoOptions.map(o => ({ ...o, isLoading: false, url: o.url || URL.createObjectURL(o.blob) })));
+       setSelectedVideoIndex(prj.selectedVideoIndex ?? 0);
+       setVideoBlob(null);
+       setVideoUrl(null);
+    } else if (prj.videoBlob) {
        setVideoBlob(prj.videoBlob);
        setVideoUrl(URL.createObjectURL(prj.videoBlob));
+       setVideoOptions([]);
+       setSelectedVideoIndex(null);
     } else {
        setVideoBlob(null);
        setVideoUrl(null);
+       setVideoOptions([]);
+       setSelectedVideoIndex(null);
     }
+    setStylePreset(prj.stylePreset || 'Logo');
+    setNegativePrompt(prj.negativePrompt || '');
     setEditPrompt('');
     setShowProjects(false);
+  };
+
+  const saveCurrent = async (overrides: Partial<Project> = {}) => {
+    if (!currentProjectId) return;
+    
+    let safeVideoOptionsFromState = undefined;
+    if (videoOptions && videoOptions.length > 0) {
+      safeVideoOptionsFromState = videoOptions
+          .filter(o => o.blob)
+          .map(({ blob, style, url }) => ({ blob: blob as Blob, style, url: url || undefined }));
+    }
+
+    await saveProject({
+      id: currentProjectId,
+      title: description.trim().substring(0, 30) || 'Untitled Design',
+      description,
+      aspectRatio,
+      imageSize,
+      stylePreset,
+      negativePrompt,
+      imageOptions,
+      selectedImageIndex,
+      videoBlob,
+      videoOptions: safeVideoOptionsFromState,
+      selectedVideoIndex,
+      updatedAt: Date.now(),
+      editHistory,
+      historyPointer,
+      palette,
+      watermarkEnabled,
+      watermarkText,
+      watermarkOpacity,
+      animationPreset,
+      ...overrides
+    });
   };
 
   const handleSelectImage = async (index: number) => {
@@ -417,26 +487,11 @@ export default function App() {
     setEditHistory(newHistory);
     setHistoryPointer(newHistory.length - 1);
 
-    if (currentProjectId) {
-      await saveProject({
-        id: currentProjectId,
-        title: description.trim().substring(0, 30) || 'Untitled Design',
-        description,
-        aspectRatio,
-        imageSize,
-        imageOptions,
-        selectedImageIndex: index,
-        videoBlob,
-        updatedAt: Date.now(),
-        editHistory: newHistory,
-        historyPointer: newHistory.length - 1,
-        palette,
-        watermarkEnabled,
-        watermarkText,
-        watermarkOpacity,
-        animationPreset,
-      });
-    }
+    await saveCurrent({
+       selectedImageIndex: index,
+       editHistory: newHistory,
+       historyPointer: newHistory.length - 1,
+    });
   };
 
   const handleUndo = async () => {
@@ -446,26 +501,10 @@ export default function App() {
         setSelectedImageIndex(prevIndex);
         setHistoryPointer(newPointer);
         
-        if (currentProjectId) {
-          await saveProject({
-            id: currentProjectId,
-            title: description.trim().substring(0, 30) || 'Untitled Design',
-            description,
-            aspectRatio,
-            imageSize,
-            imageOptions,
-            selectedImageIndex: prevIndex,
-            videoBlob,
-            updatedAt: Date.now(),
-            editHistory,
-            historyPointer: newPointer,
-            palette,
-            watermarkEnabled,
-            watermarkText,
-            watermarkOpacity,
-            animationPreset,
-          });
-        }
+        await saveCurrent({
+          selectedImageIndex: prevIndex,
+          historyPointer: newPointer,
+        });
      }
   };
 
@@ -476,26 +515,10 @@ export default function App() {
         setSelectedImageIndex(nextIndex);
         setHistoryPointer(newPointer);
 
-        if (currentProjectId) {
-          await saveProject({
-            id: currentProjectId,
-            title: description.trim().substring(0, 30) || 'Untitled Design',
-            description,
-            aspectRatio,
-            imageSize,
-            imageOptions,
-            selectedImageIndex: nextIndex,
-            videoBlob,
-            updatedAt: Date.now(),
-            editHistory,
-            historyPointer: newPointer,
-            palette,
-            watermarkEnabled,
-            watermarkText,
-            watermarkOpacity,
-            animationPreset,
-          });
-        }
+        await saveCurrent({
+          selectedImageIndex: nextIndex,
+          historyPointer: newPointer,
+        });
      }
   };
 
@@ -557,24 +580,7 @@ export default function App() {
         const parsed = JSON.parse(`[${match[1]}]`);
         if (Array.isArray(parsed)) {
           setPalette(parsed);
-          
-          if (currentProjectId) {
-            await saveProject({
-              id: currentProjectId,
-              title: description.trim().substring(0, 30) || 'Untitled Design',
-              description,
-              aspectRatio,
-              imageSize,
-              imageOptions,
-              selectedImageIndex,
-              videoBlob,
-              updatedAt: Date.now(),
-              editHistory,
-              historyPointer,
-              palette: parsed,
-              animationPreset,
-            });
-          }
+          await saveCurrent({ palette: parsed });
         }
       }
     } catch (err) {
@@ -587,91 +593,23 @@ export default function App() {
   const handlePaletteAdd = async (color: string) => {
      const newPalette = [...palette, color];
      setPalette(newPalette);
-     if (currentProjectId) {
-         await saveProject({
-            id: currentProjectId,
-            title: description.trim().substring(0, 30) || 'Untitled Design',
-            description,
-            aspectRatio,
-            imageSize,
-            imageOptions,
-            selectedImageIndex,
-            videoBlob,
-            updatedAt: Date.now(),
-            editHistory,
-            historyPointer,
-            palette: newPalette,
-            animationPreset,
-         });
-     }
+     await saveCurrent({ palette: newPalette });
   };
 
   const handlePaletteRemove = async (indexToRemove: number) => {
      const newPalette = palette.filter((_, idx) => idx !== indexToRemove);
      setPalette(newPalette);
-     if (currentProjectId) {
-         await saveProject({
-            id: currentProjectId,
-            title: description.trim().substring(0, 30) || 'Untitled Design',
-            description,
-            aspectRatio,
-            imageSize,
-            imageOptions,
-            selectedImageIndex,
-            videoBlob,
-            updatedAt: Date.now(),
-            editHistory,
-            historyPointer,
-            palette: newPalette,
-            animationPreset,
-         });
-     }
+     await saveCurrent({ palette: newPalette });
   };
 
   const toggleWatermark = async () => {
     const newState = !watermarkEnabled;
     setWatermarkEnabled(newState);
-    if (currentProjectId) {
-      await saveProject({
-        id: currentProjectId,
-        title: description.trim().substring(0, 30) || 'Untitled Design',
-        description,
-        aspectRatio,
-        imageSize,
-        imageOptions,
-        selectedImageIndex,
-        videoBlob,
-        updatedAt: Date.now(),
-        editHistory,
-        historyPointer,
-        palette,
-        watermarkEnabled: newState,
-        watermarkText,
-        animationPreset,
-      });
-    }
+    await saveCurrent({ watermarkEnabled: newState });
   };
 
   const handleWatermarkBlur = async () => {
-    if (currentProjectId) {
-      await saveProject({
-        id: currentProjectId,
-        title: description.trim().substring(0, 30) || 'Untitled Design',
-        description,
-        aspectRatio,
-        imageSize,
-        imageOptions,
-        selectedImageIndex,
-        videoBlob,
-        updatedAt: Date.now(),
-        editHistory,
-        historyPointer,
-        palette,
-        watermarkEnabled,
-        watermarkText,
-        animationPreset,
-      });
-    }
+    await saveCurrent();
   };
 
   const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
@@ -718,6 +656,10 @@ export default function App() {
         </div>
       </div>
     );
+  }
+
+  if (authReady && !user) {
+    return <LandingPage onStart={loginWithGoogle} />;
   }
 
   if (!hasKey) {
@@ -872,31 +814,28 @@ export default function App() {
             {/* Configuration Section */}
             <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-3 block">
-                Export Settings
+                Dimensions & Quality
               </label>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Format</span>
-                  <div className="flex bg-black/20 border border-white/10 rounded-lg p-1">
-                    <button
-                      onClick={() => setAspectRatio('16:9')}
-                      className={`flex-1 py-1.5 text-[11px] font-medium rounded-md transition-all ${aspectRatio === '16:9' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
-                    >
-                      16:9
-                    </button>
-                    <button
-                      onClick={() => setAspectRatio('9:16')}
-                      className={`flex-1 py-1.5 text-[11px] font-medium rounded-md transition-all ${aspectRatio === '9:16' ? 'bg-white/10 text-white shadow-sm' : 'text-white/40 hover:text-white/80'}`}
-                    >
-                      9:16
-                    </button>
-                  </div>
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Aspect Ratio</span>
+                  <select
+                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
+                    value={aspectRatio}
+                    onChange={(e) => setAspectRatio(e.target.value as any)}
+                  >
+                    <option value="1:1">1:1 Square</option>
+                    <option value="4:3">4:3 Desktop</option>
+                    <option value="3:4">3:4 Social</option>
+                    <option value="16:9">16:9 Cinematic</option>
+                    <option value="9:16">9:16 Vertical</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest">Quality</span>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-[9px] text-[12px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
                     value={imageSize}
                     onChange={(e) => setImageSize(e.target.value as '1K' | '2K' | '4K')}
                   >
@@ -904,6 +843,39 @@ export default function App() {
                     <option value="2K">2K Super</option>
                     <option value="4K">4K Ultra</option>
                   </select>
+                </div>
+              </div>
+            </section>
+
+            {/* Visual Style Section */}
+            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-3 block">
+                Visual Style & Constraints
+              </label>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Style Preset</span>
+                  <select
+                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
+                    value={stylePreset}
+                    onChange={(e) => setStylePreset(e.target.value)}
+                  >
+                    {STYLE_PRESETS.map(style => (
+                      <option key={style} value={style}>{style}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Negative Prompt (Avoid)</span>
+                  <input
+                    type="text"
+                    placeholder="e.g. text, blurry, distorted"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all"
+                    value={negativePrompt}
+                    onChange={(e) => setNegativePrompt(e.target.value)}
+                  />
                 </div>
               </div>
             </section>
@@ -1089,31 +1061,13 @@ export default function App() {
               </button>
 
               <div className="flex flex-col gap-2 pt-2 border-t border-white/10 mt-1">
-                <div className="flex justify-between items-center px-1">
-                   <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
-                     Animation Style
-                   </label>
-                </div>
-                <select
-                  value={animationPreset}
-                  onChange={(e) => setAnimationPreset(e.target.value)}
-                  className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-white placeholder-white/30 focus:outline-none focus:border-[#4facfe] text-[13px] transition-all appearance-none outline-none"
-                  style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
-                >
-                  <option value="Subtle Zoom" className="bg-[#0f111a]">Subtle Zoom</option>
-                  <option value="Gentle Pan" className="bg-[#0f111a]">Gentle Pan</option>
-                  <option value="Dynamic Reveal" className="bg-[#0f111a]">Dynamic Reveal</option>
-                  <option value="Cinematic Orbit" className="bg-[#0f111a]">Cinematic Orbit</option>
-                  <option value="Slow Fade In" className="bg-[#0f111a]">Slow Fade In</option>
-                </select>
-                
                 <button
                   onClick={animateLogo}
                   disabled={imageOptions.length === 0 || selectedImageIndex === null || isGeneratingVideo || isGeneratingImage || isEditingImage}
                   className="w-full py-[14px] px-6 bg-[#4facfe]/15 border border-[#4facfe]/50 text-white font-medium rounded-[12px] hover:bg-[#4facfe]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 flex items-center justify-center gap-2 text-[14px]"
                 >
                   {isGeneratingVideo ? <Loader2 className="animate-spin" size={18} /> : <Film size={18} />}
-                  {isGeneratingVideo ? 'Rendering...' : 'Generate Motion'}
+                  {isGeneratingVideo ? 'Rendering...' : 'Generate 3 Motion Styles'}
                 </button>
               </div>
             </section>
@@ -1125,7 +1079,7 @@ export default function App() {
           <div className="w-full h-full bg-black/20 rounded-[20px] border border-white/5 flex flex-col relative overflow-hidden">
             
             <div className="px-6 py-5 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
-              <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoUrl ? 'Final_Render.mp4' : imageOptions.length > 0 ? `Draft_Option_0${(selectedImageIndex || 0) + 1}.png` : 'Awaiting_Prompt...'}</h2>
+              <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoOptions.length > 0 || videoUrl ? 'Final_Render.mp4' : imageOptions.length > 0 ? `Draft_Option_0${(selectedImageIndex || 0) + 1}.png` : 'Awaiting_Prompt...'}</h2>
               <div className="flex gap-2">
                 <div className="w-8 h-8 bg-white/10 rounded-md"></div>
                 <div className="w-8 h-8 bg-white/10 rounded-md"></div>
@@ -1152,29 +1106,57 @@ export default function App() {
                       {generationAction}
                     </div>
                   </motion.div>
-                ) : videoUrl ? (
+                ) : (videoOptions.length > 0 && selectedVideoIndex !== null) || videoUrl ? (
                   <motion.div 
                     key="video-result"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full h-full flex flex-col items-center justify-center z-10 relative"
+                    className="w-full h-full flex flex-col justify-between items-center z-10 p-2 relative"
                   >
-                    <div className="relative flex items-center justify-center w-full h-full overflow-hidden rounded-[20px] p-2">
-                      <video 
-                        src={videoUrl} 
-                        autoPlay 
-                        loop 
-                        controls
-                        className={`max-w-full max-h-full rounded-[12px] drop-shadow-2xl ${aspectRatio === '16:9' ? 'w-full object-contain' : 'h-full object-contain'}`}
-                      />
+                    <div className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 px-4 overflow-hidden relative group">
+                      <div className="relative flex items-center justify-center w-full h-full overflow-hidden rounded-[20px] p-2">
+                        {((videoOptions.length > 0 && !videoOptions[selectedVideoIndex ?? 0]?.url) && !videoUrl) ? (
+                          <div className="animate-pulse bg-white/5 w-full h-full rounded-[12px] flex items-center justify-center">
+                            <Loader2 className="animate-spin text-white/20" size={32} />
+                          </div>
+                        ) : (
+                          <video 
+                            src={videoOptions.length > 0 ? videoOptions[selectedVideoIndex ?? 0]?.url! : videoUrl!}
+                            autoPlay 
+                            loop 
+                            controls
+                            className={`max-w-full max-h-full rounded-[12px] drop-shadow-2xl ${aspectRatio === '16:9' ? 'w-full object-contain' : 'h-full object-contain'}`}
+                          />
+                        )}
+                      </div>
+                      <a 
+                        href={videoOptions.length > 0 ? videoOptions[selectedVideoIndex ?? 0]?.url! : videoUrl!}
+                        download={`animated-logo-${videoOptions[selectedVideoIndex ?? 0]?.style || 'style'}.mp4`}
+                        className="absolute top-4 right-8 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/20 hover:bg-white/20 rounded-full text-sm font-semibold shadow-xl"
+                      >
+                        <Download size={16} /> Save Motion
+                      </a>
                     </div>
-                    <a 
-                      href={videoUrl}
-                      download="animated-logo.mp4"
-                      className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-[10px] border border-white/20 hover:bg-white/20 rounded-full text-sm font-semibold transition-colors shadow-xl"
-                    >
-                      <Download size={16} /> Download Delivery
-                    </a>
+                    {videoOptions.length > 0 && (
+                      <div className="flex gap-4 shrink-0 overflow-x-auto pb-4 justify-center w-full px-4">
+                        {videoOptions.map((opt, i) => (
+                           <button 
+                             key={i} 
+                             onClick={() => setSelectedVideoIndex(i)}
+                             disabled={!opt.url}
+                             className={`relative shrink-0 flex flex-col items-center justify-center w-32 h-20 md:w-40 md:h-24 rounded-[12px] overflow-hidden border-[3px] transition-all bg-black/50 ${
+                               selectedVideoIndex === i ? 'border-[#4facfe] shadow-[0_0_20px_rgba(79,172,254,0.4)] scale-105' : 'border-transparent opacity-50 hover:opacity-100 hover:border-white/30'
+                             }`}
+                           >
+                             <div className="text-[12px] font-bold z-10 text-center">{opt.style}</div>
+                             {!opt.url && <div className="text-[10px] text-white/40 mt-1">Failed</div>}
+                             {opt.url && (
+                                <video src={opt.url} muted className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                             )}
+                           </button>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 ) : (imageOptions.length > 0 && selectedImageIndex !== null) ? (
                    <motion.div 
@@ -1241,6 +1223,77 @@ export default function App() {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LandingPage({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#4facfe] selection:text-white items-center justify-center p-8 overflow-hidden relative">
+      {/* Background Atmosphere */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[20%] left-[10%] w-[40vw] h-[40vw] bg-[#4facfe] rounded-full opacity-[0.07] blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-[20%] right-[10%] w-[30vw] h-[30vw] bg-[#00f2fe] rounded-full opacity-[0.05] blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+
+      <div className="relative z-10 max-w-4xl w-full text-center">
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8 }}
+        >
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-[#00f2fe] to-[#4facfe] shadow-[0_0_20px_rgba(79,172,254,0.6)]"></div>
+            <span className="text-[14px] font-bold tracking-[0.3em] uppercase opacity-70">SOLODESIGN</span>
+          </div>
+          
+          <h1 className="text-[clamp(2.5rem,8vw,5.5rem)] font-extrabold leading-[0.9] tracking-tighter mb-8 uppercase italic selection:bg-white selection:text-black">
+            The next<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f2fe] via-[#4facfe] to-[#4facfe]">Generation</span><br />
+            of Identity
+          </h1>
+
+          <p className="text-[16px] md:text-[20px] text-white/50 max-w-xl mx-auto mb-12 font-medium leading-relaxed">
+            Generate high-end corporate identity, logos, and motion graphics with AI-driven precision. Professional tools for modern enterprise.
+          </p>
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <button 
+              onClick={onStart}
+              className="px-10 py-5 bg-white text-black font-bold rounded-full hover:bg-gray-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] flex items-center gap-3 text-lg group"
+            >
+              Get Started Free <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+            </button>
+            <div className="px-6 py-2 bg-white/5 backdrop-blur-md border border-white/10 rounded-full text-xs font-semibold uppercase tracking-widest text-white/40 text-nowrap">
+              No Credit Card Required
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Floating Examples */}
+        <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4 opacity-40 grayscale group hover:grayscale-0 transition-all duration-700">
+           {[1, 2, 3, 4].map(i => (
+             <motion.div 
+               key={i}
+               className="aspect-square bg-white/5 border border-white/10 rounded-[20px] overflow-hidden"
+               initial={{ opacity: 0, scale: 0.8 }}
+               animate={{ opacity: 1, scale: 1 }}
+               transition={{ delay: 0.2 * i }}
+             >
+               <img 
+                 src={`https://picsum.photos/seed/logo${i}/400/400`} 
+                 alt="Example Logo" 
+                 referrerPolicy="no-referrer"
+                 className="w-full h-full object-cover"
+               />
+             </motion.div>
+           ))}
+        </div>
+      </div>
+      
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] uppercase font-bold tracking-widest text-white/20 whitespace-nowrap">
+        Built for the future of professional branding &copy; 2024 SoloDesign
       </div>
     </div>
   );
