@@ -8,10 +8,19 @@ const distPath = path.join(__dirname, 'dist');
 
 app.use(express.static(distPath, {index: false}));
 app.get('*', (_req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err && !res.headersSent) {
+      res.status(500).send('Error loading page');
+    }
+  });
 });
 
 const port = Number(process.env.PORT) || 8080;
-app.listen(port, '0.0.0.0', () => {
+const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);
+});
+
+server.on('error', (err) => {
+  console.error('Server failed to start:', err);
+  process.exit(1);
 });
