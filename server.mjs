@@ -16,7 +16,8 @@ app.get('*', (_req, res) => {
   });
 });
 
-const port = Number(process.env.PORT) || 8080;
+const parsedPort = parseInt(process.env.PORT ?? '', 10);
+const port = Number.isNaN(parsedPort) ? 8080 : parsedPort;
 const server = app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);
 });
