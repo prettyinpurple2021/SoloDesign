@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
-import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2 } from 'lucide-react';
+import JSZip from 'jszip';
+import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2, Palette, Type, Volume2, Monitor, Smartphone, CreditCard, ChevronRight, Share2, Archive } from 'lucide-react';
 import { loginWithGoogle, logoutUser, auth } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { saveProject, getProjects, deleteProject, Project } from './lib/db';
+import { saveProject, getProjects, deleteProject, Project, BrandKit } from './lib/db';
 
 const STYLE_PRESETS = [
   'Logo', 'Minimalist', 'Corporate', 'Futuristic', 'Vintage', '3D', 'Vector', 'Flat', 'Photorealistic', 'Artistic'
@@ -38,10 +39,16 @@ export default function App() {
   const [editPrompt, setEditPrompt] = useState('');
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoOptions, setVideoOptions] = useState<InteractiveVideoOption[]>([]);
+   const [videoOptions, setVideoOptions] = useState<InteractiveVideoOption[]>([]);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState<number | null>(null);
   const [generationAction, setGenerationAction] = useState<string>('');
   
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
+  const [isGeneratingBrandKit, setIsGeneratingBrandKit] = useState(false);
+  const [activeTab, setActiveTab] = useState<'design' | 'brand' | 'mockup'>('design');
+  const [previewBg, setPreviewBg] = useState<'light' | 'dark' | 'transparent' | 'primary'>('transparent');
+  const [selectedMockup, setSelectedMockup] = useState<'none' | 'businessCard' | 'phone' | 'sign'>('none');
+
   const [editHistory, setEditHistory] = useState<number[]>([]);
   const [historyPointer, setHistoryPointer] = useState<number>(-1);
   
@@ -400,6 +407,10 @@ export default function App() {
     setVideoBlob(null);
     setVideoOptions([]);
     setSelectedVideoIndex(null);
+    setBrandKit(null);
+    setActiveTab('design');
+    setPreviewBg('transparent');
+    setSelectedMockup('none');
     setEditPrompt('');
     setShowProjects(false);
   };
@@ -414,6 +425,7 @@ export default function App() {
     setEditHistory(prj.editHistory || [prj.selectedImageIndex ?? 0]);
     setHistoryPointer(prj.historyPointer ?? 0);
     setPalette(prj.palette || []);
+    setBrandKit(prj.brandKit || null);
     setWatermarkEnabled(prj.watermarkEnabled || false);
     setWatermarkText(prj.watermarkText || 'SOLODESIGN');
     setWatermarkOpacity(prj.watermarkOpacity ?? 0.7);
@@ -468,6 +480,7 @@ export default function App() {
       editHistory,
       historyPointer,
       palette,
+      brandKit: overrides.brandKit !== undefined ? overrides.brandKit : brandKit,
       watermarkEnabled,
       watermarkText,
       watermarkOpacity,
@@ -590,6 +603,42 @@ export default function App() {
     }
   };
 
+  const generateBrandKit = async () => {
+    if (!description.trim()) return;
+    setIsGeneratingBrandKit(true);
+    setGenerationAction('Analyzing brand identity...');
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `You are an elite brand strategist. Based on this company description: "${description}", suggest a professional brand kit. 
+      Respond ONLY with a JSON object in this exact format:
+      {
+        "typography": ["Primary Font Name", "Secondary Font Name"],
+        "voice": "A one-sentence description of the brand's tone of voice",
+        "secondaryColors": ["#hex1", "#hex2"]
+      }
+      Ensure the suggestions are high-end and cohesive with the description.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-1.5-flash',
+        contents: { parts: [{ text: prompt }] },
+      });
+      
+      const text = response.text || '';
+      const match = text.match(/\{[\s\S]*?\}/);
+      if (match) {
+        const kitData = JSON.parse(match[0]);
+        setBrandKit(kitData);
+        await saveCurrent({ brandKit: kitData });
+        setActiveTab('brand');
+      }
+    } catch (err) {
+      console.error('Failed to generate brand kit:', err);
+    } finally {
+      setIsGeneratingBrandKit(false);
+      setGenerationAction('');
+    }
+  };
+
   const handlePaletteAdd = async (color: string) => {
      const newPalette = [...palette, color];
      setPalette(newPalette);
@@ -610,6 +659,51 @@ export default function App() {
 
   const handleWatermarkBlur = async () => {
     await saveCurrent();
+  };
+
+  const downloadAll = async () => {
+    const zip = new JSZip();
+    
+    setGenerationAction('Packaging assets...');
+    try {
+      // 1. Add images
+      for (let i = 0; i < imageOptions.length; i++) {
+        const img = imageOptions[i];
+        zip.file(`logo-variation-${i + 1}.png`, img.base64, { base64: true });
+      }
+      
+      // 2. Add videos
+      for (let i = 0; i < videoOptions.length; i++) {
+          const v = videoOptions[i];
+          if (v.blob) {
+              zip.file(`animation-${v.style.replace(/\s+/g, '-').toLowerCase()}.mp4`, v.blob);
+          }
+      }
+
+      // 3. Add brand info
+      let brandInfo = `SOLODESIGN CREATIVE DELIVERY\n`;
+      brandInfo += `Project: ${description.substring(0, 50)}\n\n`;
+      brandInfo += `PRIMARY PALETTE:\n${palette.join(', ')}\n\n`;
+      
+      if (brandKit) {
+          brandInfo += `TYPOGRAPHY:\n${brandKit.typography.join(', ')}\n\n`;
+          brandInfo += `BRAND VOICE:\n${brandKit.voice}\n\n`;
+          brandInfo += `SECONDARY ACCENTS:\n${brandKit.secondaryColors.join(', ')}\n\n`;
+      }
+      
+      zip.file('brand-identity-kit.txt', brandInfo);
+      
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `solodesign-delivery-${Date.now()}.zip`;
+      link.click();
+    } catch (err) {
+      console.error('Failed to create batch export:', err);
+    } finally {
+      setGenerationAction('');
+    }
   };
 
   const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
@@ -1049,28 +1143,83 @@ export default function App() {
               </button>
             </section>
 
-            {/* Action Section */}
-            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5 flex flex-col mt-auto gap-3">
-              <button
-                onClick={generateLogo}
-                disabled={!description.trim() || isGeneratingImage || isGeneratingVideo || isEditingImage}
-                className="w-full py-[16px] px-6 bg-white text-black font-semibold rounded-[12px] hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-[15px]"
-              >
-                {isGeneratingImage ? <Loader2 className="animate-spin" size={18} /> : <ImageIcon size={18} />}
-                {isGeneratingImage ? 'Drafting Render...' : 'Draft Design'}
-              </button>
-
-              <div className="flex flex-col gap-2 pt-2 border-t border-white/10 mt-1">
-                <button
-                  onClick={animateLogo}
-                  disabled={imageOptions.length === 0 || selectedImageIndex === null || isGeneratingVideo || isGeneratingImage || isEditingImage}
-                  className="w-full py-[14px] px-6 bg-[#4facfe]/15 border border-[#4facfe]/50 text-white font-medium rounded-[12px] hover:bg-[#4facfe]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 flex items-center justify-center gap-2 text-[14px]"
-                >
-                  {isGeneratingVideo ? <Loader2 className="animate-spin" size={18} /> : <Film size={18} />}
-                  {isGeneratingVideo ? 'Rendering...' : 'Generate 3 Motion Styles'}
-                </button>
+            {/* Brand Kit Section */}
+            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 block">
+                  AI Brand Kit
+                </label>
+                {brandKit && (
+                  <button 
+                    onClick={() => setActiveTab(activeTab === 'brand' ? 'design' : 'brand')} 
+                    className="text-[10px] text-[#4facfe] flex items-center gap-1 hover:underline uppercase font-bold tracking-widest"
+                  >
+                    {activeTab === 'brand' ? 'Hide' : 'Show Details'}
+                  </button>
+                )}
               </div>
+              
+              {!brandKit ? (
+                <button
+                  onClick={generateBrandKit}
+                  disabled={isGeneratingBrandKit || !description.trim()}
+                  className="w-full py-2.5 bg-white/5 border border-white/10 text-white text-[12px] rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                >
+                  {isGeneratingBrandKit ? <Loader2 className="animate-spin" size={14} /> : <Sparkles size={14} className="text-[#4facfe]" />}
+                  {isGeneratingBrandKit ? 'Strategic Analysis...' : 'Generate Brand Strategy'}
+                </button>
+              ) : (
+                <div className="space-y-3">
+                   <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/5 rounded-lg">
+                        <Type size={16} className="text-[#4facfe]" />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-[10px] text-white/40 uppercase mb-0.5 tracking-wider font-bold">Suggested Typography</div>
+                        <div className="text-[12px] truncate">{brandKit.typography.join(' / ')}</div>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/5 rounded-lg">
+                        <Volume2 size={16} className="text-[#4facfe]" />
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-[10px] text-white/40 uppercase mb-0.5 tracking-wider font-bold">Brand Voice</div>
+                        <div className="text-[12px] line-clamp-1 italic italic text-white/70">"{brandKit.voice}"</div>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/5 rounded-lg">
+                        <Archive size={16} className="text-[#4facfe]" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[10px] text-white/40 uppercase mb-0.5 tracking-wider font-bold">Secondary Accents</div>
+                        <div className="flex gap-1.5 mt-0.5">
+                           {brandKit.secondaryColors.map((c, i) => (
+                             <div key={i} className="w-5 h-5 rounded-md border border-white/10" style={{ backgroundColor: c }} title={c} />
+                           ))}
+                        </div>
+                      </div>
+                   </div>
+                </div>
+              )}
             </section>
+
+            {/* Export & Delivery Session */}
+            <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 block mb-3">
+                Final Delivery
+              </label>
+              <button
+                onClick={downloadAll}
+                disabled={imageOptions.length === 0}
+                className="w-full py-3 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-white font-bold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-2 text-[13px] shadow-[0_0_20px_rgba(79,172,254,0.3)]"
+              >
+                <Archive size={18} />
+                Generate Assets Zip (.ZIP)
+              </button>
+            </section>
+
           </div>
         </div>
 
@@ -1079,14 +1228,65 @@ export default function App() {
           <div className="w-full h-full bg-black/20 rounded-[20px] border border-white/5 flex flex-col relative overflow-hidden">
             
             <div className="px-6 py-5 flex justify-between items-center border-b border-white/5 bg-white/[0.02]">
-              <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoOptions.length > 0 || videoUrl ? 'Final_Render.mp4' : imageOptions.length > 0 ? `Draft_Option_0${(selectedImageIndex || 0) + 1}.png` : 'Awaiting_Prompt...'}</h2>
-              <div className="flex gap-2">
-                <div className="w-8 h-8 bg-white/10 rounded-md"></div>
-                <div className="w-8 h-8 bg-white/10 rounded-md"></div>
+              <div className="flex items-center gap-6">
+                <h2 className="text-[14px] uppercase tracking-[2px] text-white/50">{videoOptions.length > 0 || videoUrl ? 'Final_Render.mp4' : imageOptions.length > 0 ? `Draft_Option_0${(selectedImageIndex || 0) + 1}.png` : 'Awaiting_Prompt...'}</h2>
+                
+                <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+                  <button 
+                    onClick={() => setActiveTab('design')}
+                    className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${activeTab === 'design' ? 'bg-[#4facfe] text-white shadow-[0_0_15px_rgba(79,172,254,0.5)]' : 'text-white/40 hover:text-white'}`}
+                  >
+                    Design
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('mockup')}
+                    disabled={imageOptions.length === 0}
+                    className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all disabled:opacity-20 ${activeTab === 'mockup' ? 'bg-[#4facfe] text-white shadow-[0_0_15px_rgba(79,172,254,0.5)]' : 'text-white/40 hover:text-white'}`}
+                  >
+                    Context
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('brand')}
+                    disabled={!brandKit}
+                    className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all disabled:opacity-20 ${activeTab === 'brand' ? 'bg-[#4facfe] text-white shadow-[0_0_15px_rgba(79,172,254,0.5)]' : 'text-white/40 hover:text-white'}`}
+                  >
+                    Kit
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+                  <button 
+                    onClick={() => setPreviewBg('light')}
+                    className={`w-6 h-6 rounded bg-white border border-white/10 transition-all ${previewBg === 'light' ? 'scale-110 shadow-[0_0_10px_white]' : 'opacity-40 hover:opacity-100'}`}
+                  />
+                  <button 
+                    onClick={() => setPreviewBg('dark')}
+                    className={`w-6 h-6 rounded bg-black border border-white/10 transition-all ml-1 ${previewBg === 'dark' ? 'scale-110 shadow-[0_0_10px_rgba(0,0,0,0.5)]' : 'opacity-40 hover:opacity-100'}`}
+                  />
+                  <button 
+                    onClick={() => setPreviewBg('primary')}
+                    className={`w-6 h-6 rounded bg-[#4facfe] border border-white/10 transition-all ml-1 ${previewBg === 'primary' ? 'scale-110 shadow-[0_0_10px_rgba(79,172,254,0.5)]' : 'opacity-40 hover:opacity-100'}`}
+                  />
+                  <button 
+                    onClick={() => setPreviewBg('transparent')}
+                    className={`w-6 h-6 rounded bg-[url(https://www.transparenttextures.com/patterns/carbon-fibre.png)] border border-white/10 transition-all ml-1 ${previewBg === 'transparent' ? 'scale-110 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'opacity-40 hover:opacity-100'}`}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 bg-white/10 rounded-md"></div>
+                  <div className="w-8 h-8 bg-white/10 rounded-md"></div>
+                </div>
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+            <div className={`flex-1 flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors duration-500 ${
+              previewBg === 'light' ? 'bg-white' :
+              previewBg === 'dark' ? 'bg-[#0a0a0a]' :
+              previewBg === 'primary' ? 'bg-[#4facfe]' :
+              'bg-[#0f111a] bg-[url(https://www.transparenttextures.com/patterns/carbon-fibre.png)]'
+            }`}>
               <AnimatePresence mode="wait">
                 {(isGeneratingImage || isGeneratingVideo || isEditingImage) ? (
                   <motion.div 
@@ -1101,11 +1301,87 @@ export default function App() {
                        <div className="absolute bottom-[-10px] right-[-10px] w-5 h-5 border border-white opacity-30"></div>
                        <Loader2 size={48} className="text-white animate-spin opacity-80" />
                     </div>
-                    <div className="px-5 py-2.5 bg-white/10 backdrop-blur-[5px] border border-white/20 rounded-full text-[12px] flex items-center gap-2">
+                    <div className="px-5 py-2.5 bg-white/10 backdrop-blur-[5px] border border-white/20 rounded-full text-[12px] flex items-center gap-2 text-white">
                       <div className="w-2 h-2 rounded-full bg-[#00ff7f] shadow-[0_0_10px_#00ff7f] animate-pulse"></div>
                       {generationAction}
                     </div>
                   </motion.div>
+                ) : activeTab === 'brand' && brandKit ? (
+                  <motion.div
+                    key="brand-kit-view"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="w-full max-w-2xl bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] p-10 shadow-2xl space-y-12 z-10"
+                  >
+                    <div className="space-y-4">
+                       <h3 className="text-[#4facfe] text-[10px] uppercase font-bold tracking-[0.3em]">Institutional Tone</h3>
+                       <p className="text-2xl font-medium leading-relaxed italic text-white/90">"{brandKit.voice}"</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                       <div className="space-y-6">
+                          <h3 className="text-[#4facfe] text-[10px] uppercase font-bold tracking-[0.3em]">Typographic Pairings</h3>
+                          <div className="space-y-4">
+                             {brandKit.typography.map((font, i) => (
+                               <div key={i} className="flex flex-col border-l-2 border-white/10 pl-6 space-y-1">
+                                  <span className="text-4xl font-light tracking-tight">{font}</span>
+                                  <span className="text-[10px] text-white/30 uppercase tracking-widest">{i === 0 ? 'Display Header' : 'Accent Copy'}</span>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                       
+                       <div className="space-y-6">
+                          <h3 className="text-[#4facfe] text-[10px] uppercase font-bold tracking-[0.3em]">Core Color DNA</h3>
+                          <div className="grid grid-cols-5 gap-2">
+                             {[...palette, ...brandKit.secondaryColors].slice(0, 5).map((c, i) => (
+                               <div key={i} className="group relative">
+                                  <div className="aspect-[2/3] rounded-lg border border-white/10 shadow-xl" style={{ backgroundColor: c }} />
+                                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg">
+                                    <span className="text-[8px] font-mono font-bold tracking-tighter uppercase">{c}</span>
+                                  </div>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+                  </motion.div>
+                ) : activeTab === 'mockup' ? (
+                   <motion.div
+                    key="mockup-view"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.05 }}
+                    className="w-full h-full flex flex-col items-center justify-center p-8 z-10"
+                   >
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+                        <div className="group relative aspect-video bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
+                           <img src="https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover opacity-40" />
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-12">
+                              <img src={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url} className="w-24 h-24 object-contain drop-shadow-2xl mix-multiply contrast-125 brightness-90 shadow-black" />
+                           </div>
+                           <div className="absolute bottom-4 left-4 text-[10px] uppercase font-bold tracking-widest text-[#4facfe]/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">Institutional Wall</div>
+                        </div>
+                        <div className="group relative aspect-video bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
+                           <img src="https://images.unsplash.com/photo-1586075010633-2470acfd858b?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover opacity-40 saturate-0" />
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-12">
+                              <img src={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url} className="w-16 h-16 object-contain drop-shadow-xl rotate-[-2deg] opacity-80" />
+                           </div>
+                           <div className="absolute bottom-4 left-4 text-[10px] uppercase font-bold tracking-widest text-[#4facfe]/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">Business Suite</div>
+                        </div>
+                        <div className="group relative aspect-video bg-black/20 rounded-2xl border border-white/5 overflow-hidden">
+                           <img src="https://images.unsplash.com/photo-1616469829581-73993eb86b02?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover opacity-40 brightness-50" />
+                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-8">
+                              <img src={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url} className="w-32 h-32 object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
+                           </div>
+                           <div className="absolute bottom-4 left-4 text-[10px] uppercase font-bold tracking-widest text-[#4facfe]/80 bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">Retail Identity</div>
+                        </div>
+                     </div>
+                     <button onClick={() => setActiveTab('design')} className="mt-12 flex items-center gap-2 text-white/40 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest">
+                       Return to Design Studio <ChevronRight size={14} />
+                     </button>
+                   </motion.div>
                 ) : (videoOptions.length > 0 && selectedVideoIndex !== null) || videoUrl ? (
                   <motion.div 
                     key="video-result"

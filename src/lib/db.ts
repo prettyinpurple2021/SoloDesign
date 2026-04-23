@@ -1,6 +1,12 @@
 import { collection, doc, setDoc, getDocs, deleteDoc, query, where, getDoc } from 'firebase/firestore';
 import { db, auth } from './firebase';
 
+export interface BrandKit {
+  typography: string[];
+  voice: string;
+  secondaryColors: string[];
+}
+
 export interface Project {
   id: string;
   userId?: string;
@@ -19,6 +25,7 @@ export interface Project {
   editHistory?: number[];
   historyPointer?: number;
   palette?: string[];
+  brandKit?: BrandKit;
   watermarkEnabled?: boolean;
   watermarkText?: string;
   watermarkOpacity?: number;
@@ -205,6 +212,7 @@ export async function getProjects(): Promise<Project[]> {
       editHistory: data.editHistory,
       historyPointer: data.historyPointer,
       palette: data.palette,
+      brandKit: data.brandKit,
       watermarkEnabled: data.watermarkEnabled,
       watermarkText: data.watermarkText,
       watermarkOpacity: data.watermarkOpacity,
