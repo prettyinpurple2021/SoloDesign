@@ -10,7 +10,8 @@ app.use(express.static(distPath, {index: false}));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err && !res.headersSent) {
-      res.status(500).send('Error loading page');
+      console.error('Failed to serve index.html:', err);
+      res.status(500).send('Internal server error: Failed to load application');
     }
   });
 });
