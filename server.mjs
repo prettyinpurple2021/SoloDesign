@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
@@ -6,6 +7,14 @@ const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, 'dist');
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+app.use(limiter);
 app.use(express.static(distPath, {index: false}));
 app.get('*', (req, res, next) => {
   const acceptsHtml = req.accepts('html');
