@@ -1,0 +1,8 @@
+steps:
+  # Step 1: Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'build', '-t', 'us-east1-docker.pkg.dev/solodesign-493804/cloud-run-source-deploy/solodesign', '.' ]
+
+# The images field tells Cloud Build to push the image to Artifact Registry
+images:
+  - 'us-east1-docker.pkg.dev/solodesign-493804/cloud-run-source-deploy/solodesign'
