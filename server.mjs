@@ -7,7 +7,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, 'dist');
 
 app.use(express.static(distPath, {index: false}));
-app.get('*', (_req, res) => {
+app.get('*', (req, res, next) => {
+  const acceptsHtml = req.accepts('html');
+  const hasFileExtension = path.extname(req.path) !== '';
+
+  if (!acceptsHtml || hasFileExtension) {
+    next();
+    return;
+  }
+
   res.sendFile(path.join(distPath, 'index.html'), (err) => {
     if (err && !res.headersSent) {
       console.error('Failed to serve index.html:', err);
