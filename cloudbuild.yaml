@@ -6,3 +6,6 @@ steps:
 # The images field tells Cloud Build to push the image to Artifact Registry
 images:
   - 'us-east1-docker.pkg.dev/solodesign-493804/cloud-run-source-deploy/solodesign'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
