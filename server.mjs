@@ -1,14 +1,20 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const app = express();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
 const requestedPort = Number.parseInt(process.env.PORT ?? '8080', 10);
 const port = Number.isInteger(requestedPort) && requestedPort > 0 && requestedPort <= 65535 ? requestedPort : 8080;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const distDir = path.join(__dirname, 'dist');
 
+app.use(limiter);
 app.use(express.static(distDir));
 
 app.get('*', (_req, res) => {
