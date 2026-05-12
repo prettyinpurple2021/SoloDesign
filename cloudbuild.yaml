@@ -4,6 +4,7 @@ steps:
       - build
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/${_SERVICE}:$COMMIT_SHA
+      - --build-arg=GEMINI_API_KEY=$_GEMINI_API_KEY
       - .
 
   - name: gcr.io/cloud-builders/docker
@@ -30,3 +31,4 @@ substitutions:
   _REGION: us-central1
   _REPOSITORY: solodesign-images
   _SERVICE: solodesign
+  _GEMINI_API_KEY: ${GEMINI_API_KEY}
