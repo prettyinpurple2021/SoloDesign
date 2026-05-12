@@ -14,6 +14,7 @@ app.use(express.static(distDir));
 app.get('*', (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'), (error) => {
     if (error) {
+      console.error('Failed to serve index.html', error);
       res.status(error.statusCode || 500).end();
     }
   });
