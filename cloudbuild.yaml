@@ -28,5 +28,5 @@ images:
 
 substitutions:
   _REGION: us-central1
-  _REPOSITORY: solodesign
+  _REPOSITORY: solodesign-images
   _SERVICE: solodesign
