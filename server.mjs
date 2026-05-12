@@ -15,7 +15,9 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(distDir, 'index.html'), (error) => {
     if (error) {
       console.error('Failed to serve index.html', error);
-      res.status(error.status || 500).end();
+      const status = error.status || 500;
+      const message = status >= 500 ? 'Internal Server Error' : 'Unable to load application';
+      res.status(status).send(message);
     }
   });
 });
