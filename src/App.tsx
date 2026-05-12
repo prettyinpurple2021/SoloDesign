@@ -146,6 +146,7 @@ export default function App() {
     setCopyStatus(text);
     setTimeout(() => setCopyStatus(null), 2000);
   };
+  const [palette, setPalette] = useState<string[]>([]);
   const [palettePrompt, setPalettePrompt] = useState<string>('');
   const [paletteImageUrl, setPaletteImageUrl] = useState<string>('');
   const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
@@ -2864,4 +2865,3 @@ function LandingPage({ onStart }: { onStart: () => void }) {
     </div>
   );
 }
-
