@@ -139,6 +139,7 @@ export default function App() {
   const [editHistory, setEditHistory] = useState<number[]>([]);
   const [historyPointer, setHistoryPointer] = useState<number>(-1);
   
+  const [palette, setPalette] = useState<string[]>([]);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const copyToClipboard = (text: string) => {
@@ -146,7 +147,6 @@ export default function App() {
     setCopyStatus(text);
     setTimeout(() => setCopyStatus(null), 2000);
   };
-  const [palette, setPalette] = useState<string[]>([]);
   const [palettePrompt, setPalettePrompt] = useState<string>('');
   const [paletteImageUrl, setPaletteImageUrl] = useState<string>('');
   const [isGeneratingPalette, setIsGeneratingPalette] = useState(false);
@@ -1987,11 +1987,21 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                               placeholder="Brand Slogan"
                             />
                             <textarea 
-                              value={brandKit.mission || brandKit.voice} 
+                              value={brandKit.mission || ''} 
                               onChange={(e) => setBrandKit({...brandKit, mission: e.target.value})}
                               className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-lg text-white/60 focus:border-[#4facfe] outline-none h-32"
                               placeholder="Mission Statement"
                             />
+                            <div className="space-y-2">
+                               <label className="text-[10px] uppercase font-bold tracking-widest text-[#4facfe]/60">Brand Voice & Personality</label>
+                               <input 
+                                 type="text" 
+                                 value={brandKit.voice || ''} 
+                                 onChange={(e) => setBrandKit({...brandKit, voice: e.target.value})}
+                                 className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white/70 focus:border-[#4facfe] outline-none"
+                                 placeholder="e.g. Professional, Innovative, Precise"
+                               />
+                            </div>
                           </div>
                         ) : (
                           <>
@@ -2166,15 +2176,123 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                                <div className="grid grid-cols-2 gap-8">
                                   <div className="space-y-4">
                                      <h4 className="text-[10px] uppercase font-bold text-[#00ff7f] tracking-widest">Always Do</h4>
-                                     <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
-                                        {brandKit.usageRules?.do.map((r, i) => <li key={i}>{r}</li>) || <li>Maintain clear space</li>}
-                                     </ul>
+                                     {isEditingBrandKit ? (
+                                       <div className="space-y-2">
+                                         {(brandKit.usageRules?.do || []).map((rule, idx) => (
+                                           <div key={idx} className="flex gap-2">
+                                             <input 
+                                               type="text"
+                                               value={rule}
+                                               onChange={(e) => {
+                                                 const newDo = [...(brandKit.usageRules?.do || [])];
+                                                 newDo[idx] = e.target.value;
+                                                 setBrandKit({
+                                                   ...brandKit,
+                                                   usageRules: {
+                                                     ...(brandKit.usageRules || { dont: [] }),
+                                                     do: newDo
+                                                   }
+                                                 });
+                                               }}
+                                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#00ff7f]/50"
+                                             />
+                                             <button 
+                                               onClick={() => {
+                                                 const newDo = (brandKit.usageRules?.do || []).filter((_, i) => i !== idx);
+                                                 setBrandKit({
+                                                   ...brandKit,
+                                                   usageRules: {
+                                                     ...(brandKit.usageRules || { dont: [] }),
+                                                     do: newDo
+                                                   }
+                                                 });
+                                               }}
+                                               className="text-white/20 hover:text-red-400 p-1"
+                                             >
+                                               <X size={14} />
+                                             </button>
+                                           </div>
+                                         ))}
+                                         <button 
+                                           onClick={() => {
+                                             setBrandKit({
+                                               ...brandKit,
+                                               usageRules: {
+                                                 ...(brandKit.usageRules || { dont: [] }),
+                                                 do: [...(brandKit.usageRules?.do || []), '']
+                                               }
+                                             });
+                                           }}
+                                           className="text-[10px] uppercase font-bold text-[#00ff7f]/60 hover:text-[#00ff7f] flex items-center gap-1 mt-2"
+                                         >
+                                           <Plus size={12} /> Add Rule
+                                         </button>
+                                       </div>
+                                     ) : (
+                                       <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
+                                          {brandKit.usageRules?.do.map((r: string, i: number) => <li key={i}>{r}</li>) || <li>Maintain clear space</li>}
+                                       </ul>
+                                     )}
                                   </div>
                                   <div className="space-y-4">
                                      <h4 className="text-[10px] uppercase font-bold text-red-400 tracking-widest">Never Do</h4>
-                                     <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
-                                        {brandKit.usageRules?.dont.map((r, i) => <li key={i}>{r}</li>) || <li>Distort aspect ratio</li>}
-                                     </ul>
+                                     {isEditingBrandKit ? (
+                                       <div className="space-y-2">
+                                          {(brandKit.usageRules?.dont || []).map((rule, idx) => (
+                                           <div key={idx} className="flex gap-2">
+                                             <input 
+                                               type="text"
+                                               value={rule}
+                                               onChange={(e) => {
+                                                 const newDont = [...(brandKit.usageRules?.dont || [])];
+                                                 newDont[idx] = e.target.value;
+                                                 setBrandKit({
+                                                   ...brandKit,
+                                                   usageRules: {
+                                                     ...(brandKit.usageRules || { do: [] }),
+                                                     dont: newDont
+                                                   }
+                                                 });
+                                               }}
+                                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-red-400/50"
+                                             />
+                                             <button 
+                                               onClick={() => {
+                                                 const newDont = (brandKit.usageRules?.dont || []).filter((_, i) => i !== idx);
+                                                 setBrandKit({
+                                                   ...brandKit,
+                                                   usageRules: {
+                                                     ...(brandKit.usageRules || { do: [] }),
+                                                     dont: newDont
+                                                   }
+                                                 });
+                                               }}
+                                               className="text-white/20 hover:text-red-400 p-1"
+                                             >
+                                               <X size={14} />
+                                             </button>
+                                           </div>
+                                         ))}
+                                         <button 
+                                           onClick={() => {
+                                             setBrandKit({
+                                               ...brandKit,
+                                               usageRules: {
+                                                 ...(brandKit.usageRules || { do: [] }),
+                                                 dont: [...(brandKit.usageRules?.dont || []), '']
+                                               }
+                                             });
+                                           }}
+                                           className="text-[10px] uppercase font-bold text-red-400/60 hover:text-red-400 flex items-center gap-1 mt-2"
+                                         >
+                                           <Plus size={12} /> Add Restriction
+                                         </button>
+                                       </div>
+                                     ) : (
+                                       <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
+                                          {brandKit.usageRules?.dont.map((r: string, i: number) => <li key={i}>{r}</li>) || <li>Distort aspect ratio</li>}
+                                       </ul>
+                                     )}
                                   </div>
                                </div>
                             </div>
@@ -2865,3 +2983,4 @@ function LandingPage({ onStart }: { onStart: () => void }) {
     </div>
   );
 }
+
