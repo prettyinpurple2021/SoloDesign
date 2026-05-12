@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const app = express();
-const requestedPort = Number.parseInt(process.env.PORT ?? '', 10);
+const requestedPort = Number.parseInt(process.env.PORT ?? '8080', 10);
 const port = Number.isInteger(requestedPort) && requestedPort > 0 ? requestedPort : 8080;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
