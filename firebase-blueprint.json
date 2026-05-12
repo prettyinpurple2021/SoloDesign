@@ -32,6 +32,31 @@
         "url": { "type": "string" }
       },
       "required": ["userId", "base64", "mimeType"]
+    },
+    "Template": {
+      "title": "Design Template",
+      "description": "Saved set of project configurations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "aspectRatio": { "type": "string" },
+            "imageSize": { "type": "string" },
+            "stylePreset": { "type": "string" },
+            "negativePrompt": { "type": "string" },
+            "palette": { "type": "array" },
+            "animationPreset": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["userId", "name", "category", "settings", "createdAt"]
     }
   },
   "firestore": {
@@ -42,6 +67,24 @@
     "/projects/{projectId}/images/{imageIndex}": {
       "schema": { "$ref": "#/entities/ProjectImage" },
       "description": "Project image variants separated to avoid 1MB document limit"
+    },
+    "/projects/{projectId}/icons/{iconIndex}": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string" },
+          "index": { "type": "number" },
+          "mimeType": { "type": "string" },
+          "label": { "type": "string" },
+          "numChunks": { "type": "number" },
+          "data": { "type": "string" }
+        }
+      },
+      "description": "Matching icons generated for the project, chunked if necessary"
+    },
+    "/templates/{templateId}": {
+      "schema": { "$ref": "#/entities/Template" },
+      "description": "User saved design templates"
     }
   }
 }

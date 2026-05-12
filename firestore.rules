@@ -1,33 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // 0. Global Safety Net
     match /{document=**} { allow read, write: if false; }
 
     function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    
-    match /projects/{projectId} {
-      allow read, write: if isSignedIn() && (
-        (request.method == 'create' && incoming().userId == request.auth.uid) ||
-        (existing().userId == request.auth.uid && (request.method == 'delete' || (request.method == 'update' && incoming().userId == request.auth.uid)))
-      );
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
+    // Projects Collection
+    match /projects/{projectId} {
+      // 3. Path Variable Hardening
+      allow get, delete: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      incoming().userId == request.auth.uid && 
+                      isValidId(projectId);
+      
+      allow update: if isOwner(existing().userId) && 
+                      incoming().userId == request.auth.uid;
+
+      // Sub-resources inherit ownership from parent implicitly via path check if we want,
+      // but it's better to store userId on sub-docs too for easier rules.
+      // The current implementation in db.ts DOES store userId on sub-docs.
+      
       match /images/{docId} {
         allow read, write: if isSignedIn() && (
           (request.method == 'create' && incoming().userId == request.auth.uid) ||
-          (existing().userId == request.auth.uid && (request.method == 'delete' || (request.method == 'update' && incoming().userId == request.auth.uid)))
+          (existing().userId == request.auth.uid)
         );
       }
       
       match /video/{docId} {
         allow read, write: if isSignedIn() && (
           (request.method == 'create' && incoming().userId == request.auth.uid) ||
-          (existing().userId == request.auth.uid && (request.method == 'delete' || (request.method == 'update' && incoming().userId == request.auth.uid)))
+          (existing().userId == request.auth.uid)
+        );
+      }
+      
+      match /icons/{docId} {
+        allow read, write: if isSignedIn() && (
+          (request.method == 'create' && incoming().userId == request.auth.uid) ||
+          (existing().userId == request.auth.uid)
         );
       }
     }
-    
+
+    // Templates Collection
+    match /templates/{templateId} {
+      allow get, delete: if isOwner(existing().userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                      incoming().userId == request.auth.uid &&
+                      isValidId(templateId);
+      
+      allow update: if isOwner(existing().userId) && 
+                      incoming().userId == request.auth.uid;
+    }
+
+    // System Connection Test
     match /test/connection {
        allow get: if true;
     }
