@@ -1,4 +1,16 @@
 steps:
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - artifacts
+      - repositories
+      - create
+      - ${_REPOSITORY}
+      - --repository-format=docker
+      - --location=${_REGION}
+      - --description=SoloDesign Docker images
+    allowFailure: true
+
   - name: gcr.io/cloud-builders/docker
     args:
       - build
