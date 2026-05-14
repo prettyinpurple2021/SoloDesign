@@ -8,7 +8,7 @@ steps:
       - ${_REPOSITORY}
       - --repository-format=docker
       - --location=${_REGION}
-      - --description=SoloDesign Docker images
+      - --description="SoloDesign Docker images"
       - --quiet
     allowFailure: true
 
