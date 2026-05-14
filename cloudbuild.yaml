@@ -1,15 +1,17 @@
 steps:
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - artifacts
-      - repositories
-      - create
-      - ${_REPOSITORY}
-      - --repository-format=docker
-      - --location=${_REGION}
-      - --description=SoloDesign Docker images
-    allowFailure: true
+      - -c
+      - |
+        if ! gcloud artifacts repositories describe ${_REPOSITORY} --location=${_REGION} &>/dev/null; then
+          gcloud artifacts repositories create ${_REPOSITORY} \
+            --repository-format=docker \
+            --location=${_REGION} \
+            --description="SoloDesign Docker images"
+        else
+          echo "Repository ${_REPOSITORY} already exists"
+        fi
 
   - name: gcr.io/cloud-builders/docker
     args:
