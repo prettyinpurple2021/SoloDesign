@@ -11,6 +11,186 @@ const STYLE_PRESETS = [
   'Logo', 'Minimalist', 'Corporate', 'Futuristic', 'Vintage', '3D', 'Vector', 'Flat', 'Photorealistic', 'Artistic'
 ];
 
+const ANIMATION_PRESETS = [
+  'Subtle Zoom', 'Floating', 'Pulse', 'Spin', 'Glitch', 'Shake', 'None'
+];
+
+const getAnimationProps = (preset: string) => {
+  switch (preset) {
+    case 'Floating':
+      return {
+        animate: { y: [0, -15, 0] },
+        transition: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+      };
+    case 'Pulse':
+      return {
+        animate: { scale: [1, 1.05, 1] },
+        transition: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+      };
+    case 'Spin':
+      return {
+        animate: { rotate: 360 },
+        transition: { duration: 20, repeat: Infinity, ease: "linear" }
+      };
+    case 'Subtle Zoom':
+      return {
+        animate: { scale: [1, 1.03, 1] },
+        transition: { duration: 8, repeat: Infinity, ease: "easeInOut" }
+      };
+    case 'Glitch':
+      return {
+        animate: {
+          x: [0, 4, -4, 0, 2, -2, 0],
+          y: [0, -2, 2, 0, 1, -1, 0],
+          opacity: [1, 0.8, 1, 0.7, 1],
+          filter: ['hue-rotate(0deg)', 'hue-rotate(90deg)', 'hue-rotate(-90deg)', 'hue-rotate(0deg)']
+        },
+        transition: { duration: 0.2, repeat: Infinity, repeatDelay: 3 }
+      };
+    case 'Shake':
+      return {
+        animate: { x: [-2, 2, -2, 2, 0], rotate: [-1, 1, -1, 1, 0] },
+        transition: { duration: 0.5, repeat: Infinity, repeatDelay: 2 }
+      };
+    default:
+      return {};
+  }
+};
+
+function ProceduralVFX({ preset, color = '#4facfe' }: { preset: string; color?: string }) {
+  if (preset === 'None') return null;
+  
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center">
+      {preset === 'Pulse' && (
+        <>
+          <motion.div 
+            animate={{ scale: [0.8, 1.8], opacity: [0.6, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
+            className="absolute w-64 h-64 rounded-full border-2"
+            style={{ borderColor: `${color}44` }}
+          />
+          <motion.div 
+            animate={{ scale: [0.8, 1.8], opacity: [0.4, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeOut", delay: 0.5 }}
+            className="absolute w-64 h-64 rounded-full border"
+            style={{ borderColor: `${color}22` }}
+          />
+          <motion.div 
+            animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="absolute w-80 h-80 rounded-full blur-3xl"
+            style={{ background: `radial-gradient(circle, ${color}44 0%, transparent 70%)` }}
+          />
+        </>
+      )}
+      
+      {preset === 'Floating' && (
+        <div className="absolute inset-0">
+           {[...Array(12)].map((_, i) => (
+             <motion.div
+               key={i}
+               initial={{ 
+                 opacity: 0, 
+                 x: (Math.random() - 0.5) * 400, 
+                 y: (Math.random() - 0.5) * 400 
+               }}
+               animate={{ 
+                 y: [null, (Math.random() - 0.5) * 200],
+                 x: [null, (Math.random() - 0.5) * 200],
+                 opacity: [0, 0.4, 0],
+                 scale: [0, 1, 0]
+               }}
+               transition={{ 
+                 duration: 4 + Math.random() * 6, 
+                 repeat: Infinity, 
+                 ease: "easeInOut",
+                 delay: Math.random() * 5
+               }}
+               className="absolute w-1.5 h-1.5 rounded-full"
+               style={{ 
+                 left: '50%', 
+                 top: '50%',
+                 backgroundColor: color,
+                 boxShadow: `0 0 10px ${color}`
+               }}
+             />
+           ))}
+        </div>
+      )}
+
+      {preset === 'Spin' && (
+        <div className="relative w-full h-full flex items-center justify-center">
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute w-72 h-72 border border-dashed rounded-full"
+            style={{ borderColor: `${color}33` }}
+          />
+          <motion.div 
+            animate={{ rotate: -360 }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute w-96 h-96 border border-dashed rounded-full opacity-50"
+            style={{ borderColor: `${color}22` }}
+          />
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute w-72 h-72"
+          >
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 15px ${color}` }} />
+          </motion.div>
+        </div>
+      )}
+
+      {preset === 'Glitch' && (
+        <div className="absolute inset-0 overflow-hidden">
+           {[...Array(3)].map((_, i) => (
+             <motion.div 
+               key={i}
+               animate={{ 
+                 opacity: [0, 0.3, 0],
+                 x: [-200, 200],
+                 y: (Math.random() - 0.5) * 300,
+                 height: [`${Math.random() * 3}px`, `${Math.random() * 10}px`]
+               }}
+               transition={{ 
+                 duration: 0.1 + Math.random() * 0.1, 
+                 repeat: Infinity, 
+                 repeatDelay: 0.5 + Math.random() * 2 
+               }}
+               className="absolute w-full blur-[1px]"
+               style={{ backgroundColor: i === 0 ? color : i === 1 ? '#ff00ff' : '#00ffff' }}
+             />
+           ))}
+        </div>
+      )}
+      
+      {preset === 'Subtle Zoom' && (
+        <motion.div 
+          animate={{ scale: [1, 1.4, 1], opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute w-full h-full blur-3xl"
+          style={{ background: `radial-gradient(circle, ${color}66 0%, transparent 60%)` }}
+        />
+      )}
+      
+      {preset === 'Shake' && (
+        <div className="absolute inset-0 flex items-center justify-center">
+           <motion.div 
+             animate={{ 
+               scale: [1, 1.05, 0.95, 1],
+               opacity: [0, 0.1, 0]
+             }}
+             transition={{ duration: 0.2, repeat: Infinity, repeatDelay: 2 }}
+             className="absolute w-64 h-64 bg-white rounded-[40px] blur-2xl"
+           />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface InteractiveVideoOption {
   style: string;
   blob: Blob | null;
@@ -18,89 +198,6 @@ export interface InteractiveVideoOption {
   isLoading?: boolean;
 }
 
-function OnboardingTutorial({ step, steps, onNext, onSkip }: { step: number; steps: any[]; onNext: () => void; onSkip: () => void }) {
-  const currentStep = steps[step];
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 });
-
-  useEffect(() => {
-    const updateCoords = () => {
-      const el = document.getElementById(currentStep.target);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        setCoords({
-          top: rect.top + window.scrollY,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-          height: rect.height
-        });
-      }
-    };
-    updateCoords();
-    window.addEventListener('resize', updateCoords);
-    return () => window.removeEventListener('resize', updateCoords);
-  }, [step, currentStep.target]);
-
-  return (
-    <div className="fixed inset-0 z-[9999] pointer-events-none">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto"
-        onClick={onSkip}
-      />
-      
-      {/* Target Highlight */}
-      <motion.div
-        animate={{
-          top: coords.top - 8,
-          left: coords.left - 8,
-          width: coords.width + 16,
-          height: coords.height + 16,
-        }}
-        className="absolute border-2 border-[#4facfe] rounded-2xl shadow-[0_0_50px_rgba(79,172,254,0.3)] z-[10000]"
-        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      />
-
-      {/* Tooltip */}
-      <motion.div
-        animate={{
-          top: coords.top + (currentStep.position === 'right' ? 0 : coords.height + 20),
-          left: coords.left + (currentStep.position === 'right' ? coords.width + 40 : 0),
-          scale: 1,
-          opacity: 1
-        }}
-        initial={{ scale: 0.9, opacity: 0 }}
-        className="absolute w-[300px] bg-[#1a1c25] border border-white/10 rounded-[32px] p-8 shadow-2xl z-[10001] pointer-events-auto"
-        transition={{ type: 'spring', damping: 20, stiffness: 150 }}
-      >
-        <div className="space-y-4">
-           <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#4facfe]">Step {step + 1} of {steps.length}</span>
-              <button onClick={onSkip} className="p-1 hover:bg-white/5 rounded-md text-white/20 hover:text-white transition-colors">
-                <X size={12} />
-              </button>
-           </div>
-           <h3 className="text-xl font-bold tracking-tight">{currentStep.title}</h3>
-           <p className="text-sm text-white/50 leading-relaxed">{currentStep.description}</p>
-           
-           <div className="flex items-center gap-3 pt-4">
-              <button 
-                onClick={onNext}
-                className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-opacity-90 transition-all text-[12px] uppercase tracking-widest shadow-lg"
-              >
-                {step === steps.length - 1 ? 'Finish' : 'Next Step'}
-              </button>
-              {step < steps.length - 1 && (
-                <button onClick={onSkip} className="text-[10px] uppercase font-bold tracking-widest text-white/20 hover:text-white transition-colors">
-                  Skip Tutorial
-                </button>
-              )}
-           </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
 
 export default function App() {
   const [hasKey, setHasKey] = useState(true);
@@ -140,6 +237,8 @@ export default function App() {
   const [historyPointer, setHistoryPointer] = useState<number>(-1);
   
   const [palette, setPalette] = useState<string[]>([]);
+  const [paletteHistory, setPaletteHistory] = useState<string[][]>([]);
+  const [palettePointer, setPalettePointer] = useState<number>(-1);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
 
   const copyToClipboard = (text: string) => {
@@ -245,68 +344,6 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [typographyTestText, setTypographyTestText] = useState('Experience the synergy of vision and speed.');
   const [isEditingBrandKit, setIsEditingBrandKit] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
-
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('solo_design_tutorial_v1');
-    if (!hasSeenTutorial) {
-      setShowTutorial(true);
-    }
-  }, []);
-
-  const tutorialSteps = [
-    {
-      title: "Welcome to SoloDesign",
-      description: "Let's turn your vision into a professional brand identity in seconds.",
-      target: "tutorial-step-1",
-      position: "right"
-    },
-    {
-      title: "Define Your Vision",
-      description: "Describe your company, its values, and any specific symbols you want to see.",
-      target: "brand-description",
-      position: "right"
-    },
-    {
-      title: "Visual Strategy",
-      description: "Choose a visual preset to guide the AI's stylistic direction.",
-      target: "style-presets",
-      position: "right"
-    },
-    {
-      title: "Synthesize!",
-      description: "Click here to generate your high-fidelity logo variants.",
-      target: "generate-button",
-      position: "right"
-    },
-    {
-      title: "Identity Analysis",
-      description: "Once you have a logo, extract a full strategic brand kit with typography and voice.",
-      target: "analyze-identity-button",
-      position: "right"
-    },
-    {
-      title: "Iconography System",
-      description: "Generate a harmonized set of UI icons that perfectly match your new logo.",
-      target: "generate-assets-button",
-      position: "left"
-    }
-  ];
-
-  const nextTutorialStep = () => {
-    if (tutorialStep < tutorialSteps.length - 1) {
-      setTutorialStep(tutorialStep + 1);
-    } else {
-      setShowTutorial(false);
-      localStorage.setItem('solo_design_tutorial_v1', 'true');
-    }
-  };
-
-  const skipTutorial = () => {
-    setShowTutorial(false);
-    localStorage.setItem('solo_design_tutorial_v1', 'true');
-  };
 
   // Helper for WCAG Accessibility
   const getContrastRatio = (hex1: string, hex2: string) => {
@@ -679,6 +716,8 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
     setEditHistory([]);
     setHistoryPointer(-1);
     setPalette([]);
+    setPaletteHistory([[]]);
+    setPalettePointer(0);
     setPalettePrompt('');
     setWatermarkEnabled(false);
     setWatermarkText('SOLODESIGN');
@@ -706,6 +745,8 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
     setEditHistory(prj.editHistory || [prj.selectedImageIndex ?? 0]);
     setHistoryPointer(prj.historyPointer ?? 0);
     setPalette(prj.palette || []);
+    setPaletteHistory(prj.paletteHistory || [[prj.palette || []]]);
+    setPalettePointer(prj.palettePointer ?? (prj.palette ? 0 : -1));
     setBrandKit(prj.brandKit || null);
     setMatchingIcons(prj.matchingIcons || []);
     setWatermarkEnabled(prj.watermarkEnabled || false);
@@ -762,6 +803,8 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
       editHistory,
       historyPointer,
       palette,
+      paletteHistory,
+      palettePointer,
       brandKit: overrides.brandKit !== undefined ? overrides.brandKit : brandKit,
       matchingIcons,
       watermarkEnabled,
@@ -875,8 +918,7 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
       if (match) {
         const parsed = JSON.parse(`[${match[1]}]`);
         if (Array.isArray(parsed)) {
-          setPalette(parsed);
-          await saveCurrent({ palette: parsed });
+          await handlePaletteChange(parsed);
         }
       }
     } catch (err) {
@@ -985,16 +1027,46 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
     }
   };
 
+  const handlePaletteChange = async (newPalette: string[]) => {
+    setPalette(newPalette);
+    const newHistory = paletteHistory.slice(0, palettePointer + 1);
+    const updatedHistory = [...newHistory, newPalette];
+    // Limit history to 50 entries
+    if (updatedHistory.length > 50) updatedHistory.shift();
+    
+    setPaletteHistory(updatedHistory);
+    setPalettePointer(updatedHistory.length - 1);
+    await saveCurrent({ palette: newPalette });
+  };
+
+  const undoPalette = async () => {
+    if (palettePointer > 0) {
+      const newPointer = palettePointer - 1;
+      const prevPalette = paletteHistory[newPointer];
+      setPalettePointer(newPointer);
+      setPalette(prevPalette);
+      await saveCurrent({ palette: prevPalette });
+    }
+  };
+
+  const redoPalette = async () => {
+    if (palettePointer < paletteHistory.length - 1) {
+      const newPointer = palettePointer + 1;
+      const nextPalette = paletteHistory[newPointer];
+      setPalettePointer(newPointer);
+      setPalette(nextPalette);
+      await saveCurrent({ palette: nextPalette });
+    }
+  };
+
   const handlePaletteAdd = async (color: string) => {
      const newPalette = [...palette, color];
-     setPalette(newPalette);
-     await saveCurrent({ palette: newPalette });
+     await handlePaletteChange(newPalette);
   };
 
   const handlePaletteRemove = async (indexToRemove: number) => {
      const newPalette = palette.filter((_, idx) => idx !== indexToRemove);
-     setPalette(newPalette);
-     await saveCurrent({ palette: newPalette });
+     await handlePaletteChange(newPalette);
   };
 
   const toggleWatermark = async () => {
@@ -1095,12 +1167,12 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
     }
   };
 
-  const applyTemplate = (template: Template) => {
+  const applyTemplate = async (template: Template) => {
     setAspectRatio(template.settings.aspectRatio);
     setImageSize(template.settings.imageSize);
     setStylePreset(template.settings.stylePreset);
     setNegativePrompt(template.settings.negativePrompt);
-    setPalette(template.settings.palette);
+    await handlePaletteChange(template.settings.palette);
     setAnimationPreset(template.settings.animationPreset);
     setShowTemplates(false);
   };
@@ -1303,15 +1375,6 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
             backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(100, 149, 237, 0.3) 0%, transparent 40%), radial-gradient(circle at 90% 10%, rgba(138, 43, 226, 0.3) 0%, transparent 40%), radial-gradient(circle at 50% 80%, rgba(0, 255, 127, 0.2) 0%, transparent 50%)' 
          }}>
       
-      {showTutorial && (
-        <OnboardingTutorial 
-          step={tutorialStep} 
-          steps={tutorialSteps} 
-          onNext={nextTutorialStep} 
-          onSkip={skipTutorial} 
-        />
-      )}
-
       <div className="w-full max-w-[1240px] flex flex-col md:flex-row md:h-[800px] md:max-h-[calc(100vh-2rem)] backdrop-blur-[20px] bg-white/[0.03] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl text-white">
         
         {/* Left Panel: Controls */}
@@ -1400,7 +1463,7 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
             {/* Visual Style Section */}
             <section id="tutorial-step-2" className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-3 block">
-                Visual Style & Constraints
+                Visual Identity Synthesis
               </label>
               
               <div className="space-y-4">
@@ -1415,6 +1478,25 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                       <option key={style} value={style}>{style}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Motion Preset</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ANIMATION_PRESETS.map(preset => (
+                      <button
+                        key={preset}
+                        onClick={() => setAnimationPreset(preset)}
+                        className={`px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+                          animationPreset === preset 
+                            ? 'bg-[#4facfe]/10 border-[#4facfe] text-[#4facfe]' 
+                            : 'bg-white/5 border-white/10 text-white/40 hover:text-white/60'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1466,9 +1548,29 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
 
             {/* Brand Colors Section */}
             <section className="bg-white/5 backdrop-blur-[10px] border border-white/10 rounded-[16px] p-5">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 mb-3 block">
-                Brand Colors (Optional)
-              </label>
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/50 block">
+                  Brand Colors (Optional)
+                </label>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={undoPalette}
+                    disabled={palettePointer <= 0}
+                    className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Undo Palette Change"
+                  >
+                    <Undo2 size={12} />
+                  </button>
+                  <button 
+                    onClick={redoPalette}
+                    disabled={palettePointer >= paletteHistory.length - 1}
+                    className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    title="Redo Palette Change"
+                  >
+                    <Redo2 size={12} />
+                  </button>
+                </div>
+              </div>
               
               <div className="flex gap-2 mb-4 flex-wrap">
                 {palette.map((color, i) => (
@@ -2033,7 +2135,8 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                              </div>
                              
                              <div className="relative p-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                                <img 
+                                <motion.img 
+                                  {...getAnimationProps(activeTab === 'design' ? animationPreset : 'None')}
                                   src={imageOptions[selectedImageIndex || 0]?.url} 
                                   className="w-32 h-32 object-contain filter drop-shadow-[0_0_20px_rgba(79,172,254,0.3)]" 
                                   alt="Logo Construction" 
@@ -2443,8 +2546,7 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                                  <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/10" />
                                  <div className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center space-y-8">
                                     <motion.div 
-                                      animate={{ y: [0, -10, 0] }}
-                                      transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                      {...getAnimationProps(animationPreset)}
                                       className="p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl"
                                     >
                                        <img src={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url} className="w-24 h-24 object-contain" />
@@ -2517,11 +2619,15 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 className="w-full h-[450px] max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden shadow-2xl flex flex-col items-center justify-center space-y-8 p-12 border-[16px] border-[#111]"
                               >
-                                 <div className="grid grid-cols-2 gap-8 w-full h-full">
-                                    <div className="bg-[#f0f0f0] rounded-3xl p-8 flex flex-col items-center justify-center shadow-inner">
-                                       <div className="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center mb-4">
+                                 <div className="flex-1 space-y-12">
+                                    <div className="bg-[#f0f0f0] rounded-3xl p-8 flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+                                       <ProceduralVFX preset={animationPreset} color={palette[0]} />
+                                       <motion.div 
+                                         {...getAnimationProps(animationPreset)}
+                                         className="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center mb-4 z-10"
+                                       >
                                           <img src={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url} className="w-16 h-16 object-contain" />
-                                       </div>
+                                       </motion.div>
                                        <div className="h-2 w-24 bg-black/5 rounded-full" />
                                     </div>
                                     <div className="flex flex-col gap-6">
@@ -2637,10 +2743,12 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                     className="w-full h-full flex flex-col justify-between items-center z-10 p-2 relative"
                   >
                     <div className="flex-1 w-full flex items-center justify-center min-h-0 mb-4 px-4 overflow-hidden relative group">
-                      <img 
+                      <ProceduralVFX preset={animationPreset} color={palette[0]} />
+                      <motion.img 
+                        {...getAnimationProps(animationPreset)}
                         src={watermarkedImageUrl || imageOptions[selectedImageIndex].url} 
                         alt="Selected Option" 
-                        className="object-contain max-h-full max-w-full rounded-[24px] shadow-2xl"
+                        className="object-contain max-h-[80%] max-w-[80%] rounded-[24px] shadow-2xl relative z-10"
                       />
                       <a 
                         href={watermarkedImageUrl || imageOptions[selectedImageIndex].url}

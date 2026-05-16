@@ -78,6 +78,8 @@ export interface Project {
   editHistory?: number[];
   historyPointer?: number;
   palette?: string[];
+  paletteHistory?: string[][];
+  palettePointer?: number;
   brandKit?: BrandKit;
   matchingIcons?: { base64: string; mimeType: string; url: string; label: string }[];
   watermarkEnabled?: boolean;
@@ -368,6 +370,8 @@ export async function getProjects(): Promise<Project[]> {
       editHistory: data.editHistory,
       historyPointer: data.historyPointer,
       palette: data.palette,
+      paletteHistory: data.paletteHistory,
+      palettePointer: data.palettePointer,
       brandKit: data.brandKit,
       matchingIcons: matchingIcons.filter(Boolean),
       watermarkEnabled: data.watermarkEnabled,
