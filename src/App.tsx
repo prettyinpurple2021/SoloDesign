@@ -2849,245 +2849,287 @@ function CursorFollower() {
   );
 }
 
+function Vortex({ color = '#4facfe' }: { color?: string }) {
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ 
+            opacity: 0, 
+            scale: Math.random() * 0.5 + 0.5,
+            x: Math.random() * 100 + '%',
+            y: Math.random() * 100 + '%'
+          }}
+          animate={{ 
+            x: [null, (Math.random() - 0.5) * 20 + '%'],
+            y: [null, (Math.random() - 0.5) * 20 + '%'],
+            opacity: [0.05, 0.15, 0.05],
+          }}
+          transition={{ 
+            duration: 10 + Math.random() * 20, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+          className="absolute w-[40vw] h-[40vw] rounded-full blur-[120px]"
+          style={{ 
+            backgroundColor: i % 2 === 0 ? color : '#8A2BE2',
+            filter: 'blur(120px)',
+          }}
+        />
+      ))}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[20px]"></div>
+    </div>
+  );
+}
+
 function LandingPage({ onStart }: { onStart: () => void }) {
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col font-sans selection:bg-[#4facfe] selection:text-white overflow-x-hidden overflow-y-auto relative no-scrollbar">
-      {/* Texture Overlay */}
-      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
+    <div className="min-h-screen bg-[#020202] text-white flex flex-col font-sans selection:bg-[#4facfe] selection:text-white overflow-x-hidden relative no-scrollbar">
+      {/* Background & Effects */}
+      <Vortex />
+      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.05] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150"></div>
       
-      {/* Background Atmosphere */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] bg-[#4facfe] rounded-full opacity-[0.1] blur-[150px] animate-pulse"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-[#8A2BE2] rounded-full opacity-[0.1] blur-[150px] animate-pulse" style={{ animationDelay: '3s' }}></div>
-        <div className="absolute top-[30%] right-[20%] w-[20vw] h-[20vw] bg-[#00f2fe] rounded-full opacity-[0.05] blur-[100px]"></div>
-        {/* Grain Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+      {/* Navigation Rails */}
+      <div className="fixed top-0 left-0 bottom-0 w-12 border-r border-white/5 z-50 hidden lg:flex flex-col items-center py-8 bg-black/20 backdrop-blur-md">
+        <div className="w-6 h-6 rounded-lg bg-[#4facfe] rotate-45 shadow-[0_0_20px_rgba(79,172,254,0.5)] mb-12"></div>
+        <div className="flex-1 flex flex-col justify-center gap-12">
+           <span className="vertical-rl rotate-180 text-[10px] font-black tracking-[0.4em] text-white/20 uppercase">Systems: Active</span>
+           <span className="vertical-rl rotate-180 text-[10px] font-black tracking-[0.4em] text-white/20 uppercase">Region: US-W1</span>
+        </div>
       </div>
 
       {/* Hero Section */}
       <section className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6 md:p-24 text-center">
-        <motion.div
-           initial={{ opacity: 0, scale: 0.9 }}
-           animate={{ opacity: 1, scale: 1 }}
-           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-           className="max-w-6xl w-full"
-        >
+        <div className="max-w-7xl w-full">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
             className="flex items-center justify-center gap-3 mb-10"
           >
-            <div className="px-4 py-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-[#00f2fe] animate-ping"></div>
-              <span className="text-[11px] font-bold tracking-[0.3em] uppercase opacity-70">Design Intelligence 3.1</span>
+            <div className="px-5 py-2 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full flex items-center gap-3">
+              <div className="relative w-2 h-2">
+                <div className="absolute inset-0 rounded-full bg-[#00f2fe] animate-ping opacity-40"></div>
+                <div className="relative w-2 h-2 rounded-full bg-[#00f2fe]"></div>
+              </div>
+              <span className="text-[10px] font-black tracking-[0.4em] uppercase text-[#4facfe]">Engine v1.4 Stable</span>
             </div>
           </motion.div>
           
-          <h1 className="text-[clamp(3.5rem,12vw,10rem)] font-black leading-[0.8] tracking-[-0.07em] mb-12 uppercase italic text-white mix-blend-difference">
+          <motion.h1 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="text-[clamp(4rem,15vw,14rem)] font-display font-black leading-[0.75] tracking-[-0.06em] mb-12 uppercase italic text-white"
+          >
             Studio<br />
-            <motion.span 
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4, duration: 1.5 }}
-              className="text-transparent bg-clip-text bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center"
-            >
-              Mastery
-            </motion.span>
-          </h1>
+            <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/10">Synthesis</span>
+          </motion.h1>
 
-          <motion.p 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 1 }}
-            className="text-[18px] md:text-[26px] text-white/50 max-w-3xl mx-auto mb-16 font-light leading-relaxed tracking-tight"
+            transition={{ delay: 0.4 }}
+            className="max-w-3xl mx-auto space-y-12"
           >
-            Where advanced image synthesis meets cinematic motion architecture. SoloDesign is the definitive workspace for high-stakes visual identity.
-          </motion.p>
+            <p className="text-[18px] md:text-[24px] text-white/40 font-light leading-relaxed tracking-tight">
+              A high-precision design laboratory where advanced image synthesis meets cinematic motion architecture. Architected for the next generation of visual identity.
+            </p>
 
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="flex flex-col md:flex-row items-center justify-center gap-8"
-          >
-            <button 
-              onClick={onStart}
-              className="px-14 py-7 bg-[#4facfe] text-white font-black rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_50px_rgba(79,172,254,0.4)] flex items-center gap-4 text-2xl group overflow-hidden relative"
-            >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-              <span className="relative z-10">Start Project</span> 
-              <ChevronRight size={28} className="relative z-10 group-hover:translate-x-2 transition-transform duration-500" />
-            </button>
-            
-            <div className="flex flex-col items-start text-left gap-1 border-l border-white/10 pl-8">
-               <div className="flex items-center gap-2">
-                 <div className="w-1.5 h-1.5 rounded-full bg-[#00ff7f]"></div>
-                 <span className="text-[11px] uppercase font-black tracking-[0.2em] text-white/60">System Online</span>
-               </div>
-               <span className="text-[14px] font-medium text-white/30">VEO 3.1 Fast-GPU Active</span>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-10">
+              <button 
+                onClick={onStart}
+                className="group relative px-16 py-8 bg-white text-black font-display font-black rounded-full transition-all hover:scale-105 active:scale-95 shadow-[0_30px_100px_rgba(255,255,255,0.1)] overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-[#4facfe] translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-[0.16, 1, 0.3, 1]"></div>
+                <span className="relative z-10 flex items-center gap-4 text-2xl uppercase italic tracking-tighter">
+                  Initiate Design <ChevronRight size={28} />
+                </span>
+              </button>
+              
+              <div className="flex flex-col items-start gap-1 border-l border-white/10 pl-10 text-left">
+                <span className="text-[11px] font-black tracking-[0.2em] text-[#00ff7f] uppercase">VEO Super-Cloud Online</span>
+                <span className="text-[14px] font-medium text-white/30 italic">Real-time inference latency: 140ms</span>
+              </div>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
 
-        {/* Scroll Indicator */}
+        {/* Scroll Hint */}
         <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2, duration: 1 }}
-          className="absolute bottom-12 flex flex-col items-center gap-4 opacity-20"
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute bottom-12 flex flex-col items-center gap-4 opacity-30"
         >
-          <div className="w-[1px] h-24 bg-gradient-to-b from-white to-transparent"></div>
+          <span className="text-[9px] font-black uppercase tracking-[0.5em] mb-4">Discover Workflow</span>
+          <div className="w-[1px] h-16 bg-gradient-to-b from-white to-transparent"></div>
         </motion.div>
       </section>
 
-      {/* Grid Features */}
-      <section className="relative z-10 py-32 px-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-2 p-10 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[40px] flex flex-col justify-between group hover:border-[#4facfe]/50 transition-colors h-[400px]">
-             <div className="w-14 h-14 rounded-[20px] bg-white/5 flex items-center justify-center text-[#4facfe]">
-               <ImageIcon size={28} />
+      {/* Bento Feature Grid */}
+      <section className="relative z-10 py-48 px-6 lg:pl-32 bg-white/[0.01]">
+        <div className="max-w-7xl mx-auto mb-20 text-center md:text-left">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-[#4facfe] mb-6">Core Infrastructure</h2>
+          <h3 className="text-6xl font-display font-black uppercase italic tracking-tighter">Engineered For Scale</h3>
+        </div>
+
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-6 grid-rows-2 gap-6 min-h-[800px]">
+          {/* Main Feature */}
+          <div className="md:col-span-4 md:row-span-1 p-12 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[48px] flex flex-col justify-between group hover:bg-white/[0.05] transition-all duration-500">
+             <div className="w-16 h-16 rounded-2xl bg-[#4facfe]/10 flex items-center justify-center text-[#4facfe] group-hover:scale-110 transition-transform">
+               <ImageIcon size={32} />
              </div>
-             <div>
-               <h3 className="text-3xl font-black mb-4 uppercase italic">Advanced Synthesis</h3>
-               <p className="text-white/40 text-[16px] leading-relaxed">Multi-variant logo workflows with photorealistic 4K delivery. Designed for elite corporate assets.</p>
+             <div className="space-y-6">
+               <h4 className="text-4xl font-display font-black uppercase italic tracking-tighter">Hyper-Logic Synthesis</h4>
+               <p className="text-white/40 text-[18px] leading-relaxed max-w-xl">Deep-tissue image generation utilizing a proprietary blend of diffusive models. Guaranteed unique brand geometry at 4K resolution.</p>
+               <div className="flex gap-4 pt-4">
+                 <div className="px-4 py-1.5 rounded-full border border-white/5 bg-white/5 text-[10px] font-bold uppercase tracking-widest text-white/50">4K UNCOMPRESSED</div>
+                 <div className="px-4 py-1.5 rounded-full border border-white/5 bg-white/5 text-[10px] font-bold uppercase tracking-widest text-white/50">RAW ALPHA CHANNEL</div>
+               </div>
              </div>
           </div>
-          
-          {[
-            { icon: <Film />, title: "Motion Path", desc: "Cinematic 720p 60fps renders." },
-            { icon: <ShieldCheck />, title: "Vault Sync", desc: "Encrypted project history." },
-            { icon: <Archive />, title: "Brand Kit", desc: "Strategic delivery assets." },
-            { icon: <Monitor />, title: "Mockup View", desc: "Real-world site visualizer." }
-          ].map((f, i) => (
-            <div key={i} className="p-8 bg-white/[0.02] backdrop-blur-2xl border border-white/5 rounded-[40px] flex flex-col justify-between hover:bg-white/[0.05] transition-all">
-               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/60 mb-8">
-                 {f.icon}
-               </div>
-               <div>
-                  <h4 className="text-xl font-bold uppercase mb-2 italic tracking-tight">{f.title}</h4>
-                  <p className="text-white/30 text-[13px]">{f.desc}</p>
-               </div>
-            </div>
-          ))}
+
+          <div className="md:col-span-2 md:row-span-1 p-10 bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[48px] flex flex-col justify-between hover:bg-white/5 transition-all">
+             <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-[#8A2BE2]">
+               <Film size={24} />
+             </div>
+             <div className="space-y-4">
+               <h4 className="text-2xl font-display font-black uppercase italic tracking-tight">Kinetic Motion</h4>
+               <p className="text-white/30 text-[15px] leading-relaxed">Integrated VEO fast-track rendering for cinematic logo animations that defy traditional keyframing.</p>
+             </div>
+          </div>
+
+          <div className="md:col-span-2 md:row-span-1 p-10 bg-[#4facfe] rounded-[48px] flex flex-col justify-between shadow-[0_30px_100px_rgba(79,172,254,0.2)]">
+             <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-white">
+               <Zap size={24} />
+             </div>
+             <div className="space-y-4 text-black">
+               <h4 className="text-2xl font-display font-black uppercase italic tracking-tight">Neural Speed</h4>
+               <p className="text-black/60 text-[15px] leading-relaxed font-bold">Iterative design cycles compressed from weeks into milliseconds through automated parallel orchestration.</p>
+             </div>
+          </div>
+
+          <div className="md:col-span-4 md:row-span-1 p-12 bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[48px] flex gap-12 items-center group overflow-hidden">
+             <div className="flex-1 space-y-6">
+                <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center text-[#00ff7f]">
+                  <Archive size={28} />
+                </div>
+                <h4 className="text-4xl font-display font-black uppercase italic tracking-tighter">Brand Vault</h4>
+                <p className="text-white/40 text-[16px] leading-relaxed">Automated generation of type-scale, accessibility profiles, and iconography kits delivered as a single cohesive unit.</p>
+             </div>
+             <div className="hidden lg:flex flex-1 justify-center relative translate-x-20">
+                <div className="absolute inset-0 bg-[#4facfe]/10 blur-3xl rounded-full"></div>
+                <div className="grid grid-cols-4 gap-2 relative z-10">
+                   {[...Array(16)].map((_, i) => (
+                     <div key={i} className="w-12 h-12 bg-white/5 border border-white/10 rounded-lg group-hover:scale-90 transition-transform duration-700" style={{ transitionDelay: `${i * 20}ms` }} />
+                   ))}
+                </div>
+             </div>
+          </div>
         </div>
       </section>
 
-      {/* High-Fidelity Gallery */}
-      <section className="relative z-10 py-32 overflow-hidden bg-white/[0.01]">
-        <div className="px-6 mb-16 max-w-7xl mx-auto flex justify-between items-end">
-           <div>
-              <h2 className="text-5xl font-black uppercase italic tracking-tighter mix-blend-difference">Aura of Excellence</h2>
-              <p className="text-white/30 mt-2 font-medium">Recently deployed conceptual identities</p>
+      {/* Gallery Section */}
+      <section className="relative z-10 py-48 overflow-hidden">
+        <div className="px-6 lg:pl-32 mb-20 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-10">
+           <div className="text-center md:text-left">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.5em] text-white/20 mb-4 italic">Recently Deployed</h2>
+              <h3 className="text-6xl font-display font-black uppercase italic tracking-tighter">The Modern Archive</h3>
            </div>
-           <div className="text-[10px] uppercase font-black tracking-[0.4em] text-white/20">Scroll to Explore</div>
+           <div className="flex items-center gap-6 pb-2">
+              <span className="text-[10px] font-black tracking-[0.4em] text-[#4facfe] uppercase">Inference Log: Real-Time</span>
+              <div className="w-48 h-[1px] bg-white/10"></div>
+           </div>
         </div>
 
-        <div className="flex whitespace-nowrap gap-10 animate-marquee group py-10">
+        <div className="flex whitespace-nowrap gap-12 animate-marquee py-12">
           {[1,2,3,4,5,6,1,2,3,4,5,6].map((i, idx) => (
             <motion.div 
               key={idx} 
-              whileHover={{ rotateY: -15, rotateX: 5, scale: 1.05 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              className="w-[320px] h-[480px] md:w-[450px] md:h-[600px] shrink-0 bg-[#111] rounded-[48px] overflow-hidden border border-white/5 relative group/card"
+              whileHover={{ rotateY: -10, rotateX: 5, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="w-[300px] h-[450px] md:w-[500px] md:h-[650px] shrink-0 bg-[#0a0a0a] rounded-[60px] overflow-hidden border border-white/5 relative group/card shadow-2xl"
             >
                <img 
-                 src={`https://picsum.photos/seed/solovault-${i}${idx}/900/1200`} 
-                 className="w-full h-full object-cover grayscale brightness-75 group-hover/card:grayscale-0 group-hover/card:brightness-100 transition-all duration-1000" 
+                 src={`https://picsum.photos/seed/solodesign-${i}${idx}/1000/1300`} 
+                 className="w-full h-full object-cover grayscale opacity-40 group-hover/card:grayscale-0 group-hover/card:opacity-100 transition-all duration-1000 ease-[0.16, 1, 0.3, 1]" 
                  alt="Branding Case"
-                 referrerPolicy="no-referrer"
                />
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 group-hover/card:opacity-90 transition-opacity p-12 flex flex-col justify-end">
-                  <div className="flex items-center gap-3 mb-4">
-                     <div className="w-8 h-[1px] bg-[#4facfe]"></div>
-                     <span className="text-[#4facfe] text-[11px] uppercase font-black tracking-widest leading-none">Studio Case {idx + 1}</span>
+               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent p-12 flex flex-col justify-end">
+                  <div className="flex items-center gap-4 mb-6">
+                     <div className="w-12 h-[2px] bg-[#4facfe]"></div>
+                     <span className="text-[#4facfe] text-[11px] font-black tracking-[0.4em] uppercase">Session {204 - idx}</span>
                   </div>
-                  <span className="text-3xl font-black uppercase italic leading-none tracking-tighter">Digital<br/>Vanguard</span>
+                  <h4 className="text-4xl font-display font-black uppercase italic leading-none tracking-tighter mb-2">Visual<br/>Artifacts</h4>
+                  <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Synthesized 14.05.2024</p>
                </div>
             </motion.div>
           ))}
         </div>
-        
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee {
-            animation: marquee 50s linear infinite;
-          }
-          .animate-marquee:hover {
-            animation-play-state: paused;
-          }
-          .vertical-rl {
-            writing-mode: vertical-rl;
-          }
-          .no-scrollbar::-webkit-scrollbar {
-            display: none;
-          }
-          .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-        `}} />
       </section>
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-64 px-6 text-center border-t border-white/5 bg-gradient-to-b from-transparent to-[#4facfe]/5">
+      {/* Extreme CTA */}
+      <section className="relative z-10 py-64 px-6 text-center">
         <motion.div
            initial={{ opacity: 0, y: 50 }}
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
-           className="max-w-4xl mx-auto"
+           className="max-w-6xl mx-auto"
         >
-          <h2 className="text-[clamp(3rem,10vw,8rem)] font-black uppercase italic tracking-tighter mb-16 leading-[0.8]">
-            Built For<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-br from-[#4facfe] to-white/20">The Visionary</span>
+          <h2 className="text-[clamp(3.5rem,15vw,12rem)] font-display font-black uppercase italic tracking-tighter mb-20 leading-[0.8]">
+            Architect Your<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-br from-white via-[#4facfe] to-white/10">Legacy</span>
           </h2>
           <button 
             onClick={onStart}
-            className="px-20 py-10 bg-white text-black font-black rounded-full hover:scale-105 active:scale-95 transition-all text-3xl uppercase italic tracking-widest shadow-[0_40px_120px_rgba(255,255,255,0.15)] group relative overflow-hidden"
+            className="px-24 py-10 bg-white text-black font-display font-black rounded-full hover:scale-105 active:scale-95 transition-all text-3xl uppercase italic tracking-widest shadow-[0_50px_150px_rgba(255,255,255,0.2)] group"
           >
-            <div className="absolute inset-x-0 bottom-0 h-2 bg-[#4facfe] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            Access The Lab
+            Access Lab 01
           </button>
         </motion.div>
       </section>
 
-      <footer className="relative z-10 p-16 flex flex-col md:flex-row items-start justify-between gap-16 border-t border-white/5 bg-[#080808]">
-        <div className="space-y-8 max-w-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-6 h-6 rounded-lg bg-[#4facfe] rotate-45 shadow-[0_0_20px_rgba(79,172,254,0.5)]"></div>
-            <span className="text-[18px] font-black tracking-[0.4em] uppercase italic">SoloDesign</span>
+      {/* Footer System */}
+      <footer className="relative z-10 bg-[#050505] border-t border-white/5 pt-32 pb-12 px-6 lg:px-32">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-24 mb-32">
+          <div className="space-y-10 lg:col-span-2">
+            <div className="flex items-center gap-5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#00f2fe] to-[#4facfe] rotate-45"></div>
+              <span className="text-2xl font-display font-black tracking-[0.4em] uppercase italic">SoloDesign</span>
+            </div>
+            <p className="text-white/20 text-[18px] font-medium leading-relaxed max-w-sm">
+              The definitive architecture for high-stakes visual identity. Designed and maintained for modern visionaries.
+            </p>
           </div>
-          <p className="text-white/20 text-sm font-medium leading-relaxed">
-            Leading the paradigm shift in automated high-end visual design. Built with cutting-edge synthesis architecture.
-          </p>
+          
+          <div className="space-y-10">
+             <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#4facfe]">Resources</h4>
+             <ul className="flex flex-col gap-5 text-sm font-black uppercase tracking-widest italic text-white/30">
+                <li><a href="#" className="hover:text-white transition-colors">Lab Docs</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API Control</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Status: Up</a></li>
+             </ul>
+          </div>
+
+          <div className="space-y-10">
+             <h4 className="text-[10px] font-black uppercase tracking-[0.5em] text-[#4facfe]">Legal</h4>
+             <ul className="flex flex-col gap-5 text-sm font-black uppercase tracking-widest italic text-white/30">
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Vault</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Terms of Synth</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">&copy; {new Date().getFullYear()}</a></li>
+             </ul>
+          </div>
         </div>
         
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-24">
-           <div className="space-y-6">
-              <h5 className="text-[11px] uppercase font-black tracking-widest text-[#4facfe]">Resources</h5>
-              <div className="flex flex-col gap-3 text-sm text-white/30 font-bold uppercase tracking-tight italic">
-                 <a href="#" className="hover:text-white transition-colors">Documentation</a>
-                 <a href="#" className="hover:text-white transition-colors">API Specs</a>
-                 <a href="#" className="hover:text-white transition-colors">Studio News</a>
-              </div>
-           </div>
-           <div className="space-y-6">
-              <h5 className="text-[11px] uppercase font-black tracking-widest text-[#4facfe]">Enterprise</h5>
-              <div className="flex flex-col gap-3 text-sm text-white/30 font-bold uppercase tracking-tight italic">
-                 <a href="#" className="hover:text-white transition-colors">License Kit</a>
-                 <a href="#" className="hover:text-white transition-colors">Lab Support</a>
-                 <a href="#" className="hover:text-white transition-colors">Security</a>
-              </div>
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-10 pt-12 border-t border-white/5">
+           <div className="text-[10px] font-black tracking-[0.8em] text-white/10 uppercase">Architected by Inteligencia & Code.</div>
+           <div className="flex gap-12 text-[10px] font-black tracking-[0.3em] uppercase text-white/20">
+              <span>Latency: Opt</span>
+              <span>Enc: Yes</span>
+              <span>Dist: Edge</span>
            </div>
         </div>
       </footer>
-      
-      <div className="relative z-10 p-6 text-center text-[10px] uppercase font-black tracking-[0.8em] text-white/10 bg-[#080808] border-t border-white/[0.03]">
-        Architected by code and intelligence &copy; 2024.
-      </div>
     </div>
   );
 }
