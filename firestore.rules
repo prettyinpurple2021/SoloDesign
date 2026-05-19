@@ -62,6 +62,11 @@ service cloud.firestore {
                       incoming().userId == request.auth.uid;
     }
 
+    // Subscriptions Collection
+    match /user_subscriptions/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
     // System Connection Test
     match /test/connection {
        allow get: if true;

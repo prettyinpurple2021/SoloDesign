@@ -2,5 +2,5 @@
   "name": "SoloDesign",
   "description": "Full-spectrum AI Brand Identity Suite. Features include smart logo synthesis, procedural motion graphics, interactive digital brand guidelines with accessibility auditing, and harmonized iconography generation.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
