@@ -59,6 +59,11 @@ export function BrandKitWorkspace({
   };
 
   // Helper for WCAG Accessibility
+  /**
+   * Calculates the WCAG 2.1 Relative Luminance and Contrast Ratio of two HEX values.
+   * Formula: (L1 + 0.05) / (L2 + 0.05) where L1 is the lighter and L2 is the darker relative luminance.
+   * Luminance is determined by converting absolute sRGB color space values to linear light space.
+   */
   const getContrastRatio = (hex1: string, hex2: string) => {
     const getLuminance = (hex: string) => {
       let r = 0, g = 0, b = 0;
@@ -83,6 +88,11 @@ export function BrandKitWorkspace({
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
   };
 
+  /**
+   * Dynamically heals / shifts a non-compliant brand color towards WCAG compliance targets.
+   * It moves the color value incrementally towards pure white (on dark backgrounds) or
+   * dark slate/black (on light backgrounds) until the exact target contrast ratio is met.
+   */
   const autoHealContrast = (hex: string, targetBgHex: string, targetLevel: 'AA' | 'AAA' = 'AA') => {
     const targetRatio = targetLevel === 'AAA' ? 7.0 : 4.5;
     const ratio = getContrastRatio(hex, targetBgHex);
@@ -118,6 +128,7 @@ export function BrandKitWorkspace({
     const isBgDark = getLuminanceForRgb(bg) < 0.5;
     
     let currentHex = hex;
+    // Step-wise convergence factor towards safe compliance values
     for (let step = 0; step < 40; step++) {
       const factor = step / 40;
       let r = color.r, g = color.g, b = color.b;

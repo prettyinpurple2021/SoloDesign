@@ -13,21 +13,55 @@ import {
   Maximize2
 } from 'lucide-react';
 
+/**
+ * PHYSICAL MOCKUP STUDIO PIPELINE (DEVELOPER DOCUMENTATION)
+ * ──────────────────────────────────────────────────────────────────────────
+ * This component handles real-time visual mapping of brand logos onto several
+ * physical medium surfaces (Premium T-shirt, Ceramic Coffee Mug, and Highway Billboard)
+ * using client-side processing techniques.
+ * 
+ * CORE ARCHITECTURAL CONCEPTS:
+ * 
+ * 1. MULTI-PLANE INTERACTIVE WRAPPING & CLIPPING:
+ *    - To maintain strict realism, brand assets are clipped to physical product geometry.
+ *    - Uses responsive SVG definitions, linearGradients, and masks (`#shirt-mask`, etc.).
+ *    - CSS clipPath templates limit the logo to the fabric or ceramic boundaries.
+ * 
+ * 2. COMPOSITING MATRIX & BLEND MODES:
+ *    - Standard elements are composited using `mix-blend-mode`.
+ *    - 'multiply' behaves like dye ink soaking into the physical texture of dark/light fabrics.
+ *    - Natural shadows and highlights sit *above* the logo using a mix-blend-overlay layer
+ *      to ensure lighting is naturally cast on top of the graphics.
+ * 
+ * 3. ISOMETRIC & CYLINDRICAL DEVIATIONS:
+ *    - Supports live horizontal/vertical translation skewing to emulate high-perspective
+ *      highway coordinates and billboard dimensions.
+ *    - Adapts default layout offsets, scales, and base color tones whenever products switch.
+ * 
+ * 4. DRAG-TRACKING CALIBRATION:
+ *    - Leverages synchronized MouseEvent/TouchEvent coordinates to allow absolute placement.
+ *    - A separate delta calculations module handles gesture speeds without lagging the DOM.
+ */
+
 interface PhysicalMockupStudioProps {
   logoUrl: string;
   palette: string[];
   slogan?: string;
 }
 
+/**
+ * PhysicalMockupStudio Component
+ * Renders the primary workspace containing the interactive preview viewport and the calibration control sliders.
+ */
 export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMockupStudioProps) {
-  // Available Product templates
+  // Available Product templates: shirt, mug, or highway billboard
   const [activeProduct, setActiveProduct] = useState<'shirt' | 'mug' | 'billboard'>('shirt');
   
-  // Custom fabric / material color
+  // Custom fabric / material color sourced dynamically from the generated design palette
   const defaultColor = palette && palette.length > 0 ? palette[0] : '#0e1726';
   const [productColor, setProductColor] = useState<string>(defaultColor);
   
-  // Interactive CSS Transform States
+  // Interactive CSS Transform States for warp positioning
   const [logoScale, setLogoScale] = useState<number>(0.35);
   const [logoX, setLogoX] = useState<number>(0);
   const [logoY, setLogoY] = useState<number>(-20);
@@ -38,24 +72,26 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
   const [blendMode, setBlendMode] = useState<string>('normal');
   const [shadingIntensity, setShadingIntensity] = useState<number>(0.65);
   
-  // Show / Hide guides
+  // HUD Guidance tools
   const [showSafeZone, setShowSafeZone] = useState<boolean>(true);
   const [showBlueprintGrid, setShowBlueprintGrid] = useState<boolean>(false);
   
-  // Drag states
+  // Gesture dragging tracking state refs
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dragStartPos = useRef({ x: 0, y: 0 });
   const startLogoPos = useRef({ x: 0, y: 0 });
   const viewAreaRef = useRef<HTMLDivElement>(null);
 
-  // Sync picked color with palette changes
+  // Synchronizes physical material colors whenever the overarching brand palette changes
   useEffect(() => {
     if (palette && palette.length > 0) {
       setProductColor(palette[0]);
     }
   }, [palette]);
 
-  // Handle resets
+  /**
+   * Resets all transform states to their original safe defaults depending on the active product
+   */
   const resetTransforms = () => {
     setLogoScale(0.35);
     setLogoX(0);
@@ -67,7 +103,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     setBlendMode(activeProduct === 'shirt' ? 'multiply' : activeProduct === 'mug' ? 'multiply' : 'normal');
   };
 
-  // Adjust default offsets on product switch
+  // Adjusts responsive scale presets and baseline offsets upon changing the active product type
   useEffect(() => {
     if (activeProduct === 'shirt') {
       setLogoScale(0.32);
@@ -87,7 +123,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     }
   }, [activeProduct]);
 
-  // Drag listeners
+  // Unified Mouse Event Dragging Listeners
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -100,7 +136,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     const deltaX = e.clientX - dragStartPos.current.x;
     const deltaY = e.clientY - dragStartPos.current.y;
     
-    // Scale tracking speed depending on actual physical pixel size
+    // speedFactor of 1.0 represents standard pixel-to-pixel coordinate matching
     const speedFactor = 1.0; 
     setLogoX(startLogoPos.current.x + deltaX * speedFactor);
     setLogoY(startLogoPos.current.y + deltaY * speedFactor);
@@ -110,6 +146,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     setIsDragging(false);
   };
 
+  // Listens globally to mouse interactions outside the container to prevent drag-freezing states
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
@@ -124,7 +161,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     };
   }, [isDragging]);
 
-  // Touch handlers for mobile/preview gestures
+  // Unified Mobile Touch Event Gesture Tracking listeners
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -141,7 +178,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
     setLogoY(startLogoPos.current.y + deltaY);
   };
 
-  // Helper styles for transformations
+  // Computes the combined CSS transformation matrix for rendering in the DOM
   const appliedTransform = `translate(${logoX}px, ${logoY}px) scale(${logoScale}) rotate(${logoRotate}deg) skewX(${logoSkewX}deg) skewY(${logoSkewY}deg)`;
 
   return (
