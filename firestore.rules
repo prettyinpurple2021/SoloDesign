@@ -67,6 +67,15 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
     }
 
+    // Community Posts Collection
+    match /community_posts/{postId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid;
+      // Allow any signed in user to update the post (for adding/removing likes and comments) or if they are the owner
+      allow update: if isSignedIn();
+      allow delete: if isOwner(existing().userId);
+    }
+
     // System Connection Test
     match /test/connection {
        allow get: if true;

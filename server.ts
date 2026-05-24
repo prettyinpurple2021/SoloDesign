@@ -280,7 +280,15 @@ app.post("/api/generate-brand-kit", async (req, res) => {
       "usageRules": {
         "do": ["Include clear white space", "Use correct color profiles", "Maintain aspect ratio"],
         "dont": ["Stretch or distort", "Use on busy backgrounds", "Modify the logo color"]
-      }
+      },
+      "manifesto": "A compelling, high-impact long-form brand manifesto (2-3 paragraphs) that captures the soul and emotional core of the brand. Make it passionate, evocative, and inspiring.",
+      "vision": "A detailed, inspiring vision statement describing the brand's ultimate aspiration and 10-year outlook for world-class impact.",
+      "targetAudience": "A detailed, structured profile of the core target audience (defining demographic markers, psychological drivers, and behavioral traits) explaining why they crave this brand.",
+      "features": [
+        { "title": "Feature Title", "description": "Details of the first interactive feature/service offered to the target users" },
+        { "title": "Second Feature Title", "description": "Details of the second core feature/service offered to the users" },
+        { "title": "Third Feature Title", "description": "Details of the third premium feature/service showing what users can execute" }
+      ]
     }
     Ensure the suggestions are high-end and cohesive with the description.`;
 

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import JSZip from 'jszip';
-import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2, Palette, Type, Volume2, Monitor, Smartphone, CreditCard, ChevronRight, Share2, Archive, ShieldCheck, Bookmark, BookMarked, Tags, FileCode, Brush, Zap, Target } from 'lucide-react';
+import { Image as ImageIcon, Loader2, Film, Sparkles, Download, Settings2, KeyRound, Wand2, FolderHeart, LayoutGrid, Plus, X, Trash2, Undo2, Redo2, Palette, Type, Volume2, Monitor, Smartphone, CreditCard, ChevronRight, Share2, Archive, ShieldCheck, Bookmark, BookMarked, Tags, FileCode, Brush, Zap, Target, LogOut } from 'lucide-react';
 import { loginWithGoogle, logoutUser, auth } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { saveProject, getProjects, deleteProject, Project, BrandKit, Template, saveTemplate, getTemplates, deleteTemplate } from './lib/db';
+import { BrandKitWorkspace } from './components/BrandKitWorkspace';
+import { PhysicalMockupStudio } from './components/PhysicalMockupStudio';
 
 export function getLuminance(hex: string): number {
   let cleanHex = hex.replace('#', '');
@@ -258,7 +260,7 @@ export default function App() {
   const [isGeneratingBrandKit, setIsGeneratingBrandKit] = useState(false);
   const [activeTab, setActiveTab] = useState<'design' | 'brand' | 'mockup' | 'assets'>('design');
   const [previewBg, setPreviewBg] = useState<'light' | 'dark' | 'transparent' | 'primary'>('transparent');
-  const [selectedMockup, setSelectedMockup] = useState<'none' | 'businessCard' | 'phone' | 'sign' | 'stationery'>('phone');
+  const [selectedMockup, setSelectedMockup] = useState<'none' | 'businessCard' | 'phone' | 'sign' | 'stationery' | 'physicalStudio'>('physicalStudio');
   const [matchingIcons, setMatchingIcons] = useState<{ base64: string; mimeType: string; url: string; label: string }[]>([]);
   const [isGeneratingIcons, setIsGeneratingIcons] = useState(false);
 
@@ -400,6 +402,8 @@ export default function App() {
     }
   }, [showProjects, showTemplates, user]);
 
+
+
   useEffect(() => {
     if (selectedImageIndex !== null && imageOptions[selectedImageIndex]) {
       if (!watermarkEnabled) {
@@ -455,6 +459,67 @@ export default function App() {
   const [typographyTestText, setTypographyTestText] = useState('Experience the synergy of vision and speed.');
   const [isEditingBrandKit, setIsEditingBrandKit] = useState(false);
 
+  // Curated premium Google Font configurations for live pairing select
+  const CURATED_FONTS = [
+    { name: 'Space Grotesk', importName: 'Space+Grotesk:wght@300;400;500;600;700', type: 'sans-serif' },
+    { name: 'Inter', importName: 'Inter:wght@300;400;500;600;700', type: 'sans-serif' },
+    { name: 'Playfair Display', importName: 'Playfair+Display:ital,wght@0,400;0,700;1,400', type: 'serif' },
+    { name: 'JetBrains Mono', importName: 'JetBrains+Mono:wght@300;400;500;700', type: 'monospace' },
+    { name: 'Syne', importName: 'Syne:wght@400;700;800', type: 'sans-serif' },
+    { name: 'Cabinet Grotesk', importName: 'Cabinet+Grotesk:wght@300;400;500;700;800', type: 'sans-serif' },
+    { name: 'Cinzel', importName: 'Cinzel:wght@400;600;700;900', type: 'serif' },
+    { name: 'Clash Display', importName: 'Clash+Display:wght@400;500;600;700', type: 'sans-serif' },
+    { name: 'Cormorant Garamond', importName: 'Cormorant+Garamond:ital,wght@0,400;0,700;1,400', type: 'serif' },
+  ];
+
+  // Advanced Interactive Brand & Design States
+  const [logoPadding, setLogoPadding] = useState<number>(36);
+  const [constructionGrid, setConstructionGrid] = useState<'none' | 'blueprint' | 'golden' | 'optical'>('none');
+  const [grayscaleLogo, setGrayscaleLogo] = useState<boolean>(false);
+  const [rotatedLogo, setRotatedLogo] = useState<number>(0);
+  const [activeBrandMode, setActiveBrandMode] = useState<'guidelines' | 'presentation'>('guidelines');
+  const [presentationSlideIndex, setPresentationSlideIndex] = useState<number>(0);
+  const [contrastLevel, setContrastLevel] = useState<'AA' | 'AAA'>('AA');
+  const [codeTargetType, setCodeTargetType] = useState<'tailwind' | 'css' | 'swift' | 'kotlin' | 'json'>('tailwind');
+  const [typographySize, setTypographySize] = useState<number>(60);
+  const [typographyWeight, setTypographyWeight] = useState<'300' | '400' | '500' | '700' | '800'>('400');
+
+  // Load selected fonts dynamically by injecting head style sheets
+  useEffect(() => {
+    if (brandKit) {
+      const fontsToLoad = [...(brandKit.typography || [])];
+      fontsToLoad.forEach(font => {
+        const match = CURATED_FONTS.find(f => f.name === font);
+        if (match) {
+          const id = `font-link-${font.replace(/\s+/g, '-')}`;
+          if (!document.getElementById(id)) {
+            const link = document.createElement('link');
+            link.id = id;
+            link.rel = 'stylesheet';
+            link.href = `https://fonts.googleapis.com/css2?family=${match.importName}&display=swap`;
+            document.head.appendChild(link);
+          }
+        }
+      });
+    }
+  }, [brandKit]);
+
+  // Default Brand Kit layout fallback if initiated manually
+  const defaultBrandKit: BrandKit = {
+    typography: ['Space Grotesk', 'Inter'],
+    voice: 'Professional, elegant, precise, and visionary.',
+    secondaryColors: ['#334155', '#475569'],
+    slogan: 'Architecting digital resonance.',
+    mission: 'To create beautiful, functional assets that connect human intent with aesthetic harmony.',
+    usageRules: {
+      do: ['Include clear white space', 'Use correct color profiles', 'Maintain aspect ratio'],
+      dont: ['Stretch or distort', 'Use on busy backgrounds', 'Modify the logo color']
+    },
+    manifesto: 'We believe that great design is not decorative—it is core identity. Every asset is a silent ambassador for your goals and aspirations in the digital wilderness.',
+    vision: 'To build a lasting visual universe that remains timelessly relevant and responsive to cultural and technological progress.',
+    targetAudience: 'Professional solo practitioners, design-conscious leaders, and visionaries looking for high-end aesthetic execution.'
+  };
+
   // Helper for WCAG Accessibility
   const getContrastRatio = (hex1: string, hex2: string) => {
     const getLuminance = (hex: string) => {
@@ -477,6 +542,62 @@ export default function App() {
     const l1 = getLuminance(hex1);
     const l2 = getLuminance(hex2);
     return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  };
+
+  // Automated mathematical WCAG content contrast healer
+  const autoHealContrast = (hex: string, targetBgHex: string, targetLevel: 'AA' | 'AAA' = 'AA') => {
+    const targetRatio = targetLevel === 'AAA' ? 7.0 : 4.5;
+    const ratio = getContrastRatio(hex, targetBgHex);
+    if (ratio >= targetRatio) return hex;
+
+    const hexToRgb = (h: string) => {
+      let clean = h.replace('#', '');
+      if (clean.length === 3) {
+        clean = clean[0] + clean[0] + clean[1] + clean[1] + clean[2] + clean[2];
+      }
+      return {
+        r: parseInt(clean.substring(0, 2), 16),
+        g: parseInt(clean.substring(2, 4), 16),
+        b: parseInt(clean.substring(4, 6), 16)
+      };
+    };
+
+    const rgbToHex = (r: number, g: number, b: number) => {
+      const clamp = (val: number) => Math.max(0, Math.min(255, Math.round(val)));
+      return '#' + [clamp(r), clamp(g), clamp(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+    };
+
+    const getLuminanceForRgb = (rgb: { r: number, g: number, b: number }) => {
+      const a = [rgb.r, rgb.g, rgb.b].map(v => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      });
+      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+    };
+
+    const color = hexToRgb(hex);
+    const bg = hexToRgb(targetBgHex);
+    const isBgDark = getLuminanceForRgb(bg) < 0.5;
+    
+    let currentHex = hex;
+    for (let step = 0; step < 40; step++) {
+      const factor = step / 40;
+      let r = color.r, g = color.g, b = color.b;
+      if (isBgDark) {
+        r = Math.round(color.r + (255 - color.r) * factor);
+        g = Math.round(color.g + (255 - color.g) * factor);
+        b = Math.round(color.b + (220 - color.b) * factor);
+      } else {
+        r = Math.round(color.r * (1 - factor));
+        g = Math.round(color.g * (1 - factor));
+        b = Math.round(color.b * (1 - factor));
+      }
+      currentHex = rgbToHex(r, g, b);
+      if (getContrastRatio(currentHex, targetBgHex) >= targetRatio) {
+        return currentHex;
+      }
+    }
+    return isBgDark ? '#ffffff' : '#0e1726';
   };
 
   const downloadFullBundle = async () => {
@@ -512,6 +633,15 @@ export default function App() {
 - **Slogan:** ${brandKit.slogan || 'N/A'}
 - **Mission:** ${brandKit.mission || 'N/A'}
 - **Tone of Voice:** ${brandKit.voice}
+
+### Full Brand Manifesto
+${brandKit.manifesto || 'N/A'}
+
+### Strategic Ten-Year Vision
+${brandKit.vision || 'N/A'}
+
+### Target Audience & User Profile
+${brandKit.targetAudience || 'N/A'}
 
 ## Visual DNA
 ### Typography
@@ -1187,6 +1317,9 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
           brandInfo += `TYPOGRAPHY:\n${brandKit.typography.join(', ')}\n\n`;
           brandInfo += `BRAND VOICE:\n${brandKit.voice}\n\n`;
           brandInfo += `SECONDARY ACCENTS:\n${brandKit.secondaryColors.join(', ')}\n\n`;
+          brandInfo += `BRAND MANIFESTO:\n${brandKit.manifesto || 'N/A'}\n\n`;
+          brandInfo += `STRATEGIC VISION:\n${brandKit.vision || 'N/A'}\n\n`;
+          brandInfo += `TARGET AUDIENCE:\n${brandKit.targetAudience || 'N/A'}\n\n`;
       }
       
       zip.file('brand-identity-kit.txt', brandInfo);
@@ -1479,18 +1612,37 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
               >
                 <FolderHeart size={18} />
               </button>
-              <button 
-                onClick={logoutUser}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                title="Sign Out"
-              >
-                <X size={18} />
-              </button>
             </div>
           </div>
 
-          {/* Active Billing Tier and Credits Card */}
-          <div className="mb-6 p-4 bg-white/[0.03] border border-white/10 rounded-[16px] backdrop-blur-[10px] space-y-3 shadow-md selection:bg-cyan-500/30">
+          {/* Combined Account, Profile and Credits Control Panel */}
+          <div className="mb-6 p-4 bg-white/[0.03] border border-white/10 rounded-[16px] backdrop-blur-[10px] space-y-4 shadow-md selection:bg-cyan-500/30">
+            {/* User Profile Credentials with interactive Sign Out */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                {user?.photoURL ? (
+                  <img src={user.photoURL} className="w-8 h-8 rounded-full border border-white/10" alt="Avatar" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00f2fe] to-[#4facfe] flex items-center justify-center font-bold text-xs text-black uppercase font-mono shrink-0">
+                    {user?.displayName ? user.displayName.charAt(0) : (user?.email ? user.email.charAt(0) : 'U')}
+                  </div>
+                )}
+                <div className="overflow-hidden">
+                  <div className="text-xs font-black truncate text-white">{user?.displayName || 'Active Member'}</div>
+                  <div className="text-[9px] text-white/40 truncate font-mono">{user?.email}</div>
+                </div>
+              </div>
+              
+              <button 
+                onClick={logoutUser}
+                className="flex items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 text-white/60 transition-all font-mono text-[9px] font-bold uppercase tracking-widest gap-1 shrink-0"
+                title="Sign Out of Session"
+              >
+                <LogOut size={12} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-white/40 uppercase tracking-widest font-semibold font-mono">My Account Pipeline</span>
               <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border ${
@@ -2140,8 +2292,7 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                   <button 
                     id="nav-brand"
                     onClick={() => setActiveTab('brand')}
-                    disabled={!brandKit}
-                    className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all disabled:opacity-20 ${activeTab === 'brand' ? 'bg-[#4facfe] text-white shadow-[0_0_15px_rgba(79,172,254,0.5)]' : 'text-white/40 hover:text-white'}`}
+                    className={`px-3 py-1 text-[11px] font-bold uppercase tracking-widest rounded-md transition-all ${activeTab === 'brand' ? 'bg-[#4facfe] text-white shadow-[0_0_15px_rgba(79,172,254,0.5)]' : 'text-white/40 hover:text-white'}`}
                   >
                     Guidelines
                   </button>
@@ -2207,399 +2358,24 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                       {generationAction}
                     </div>
                   </motion.div>
-                ) : activeTab === 'brand' && brandKit ? (
-                  <motion.div
-                    key="brand-kit-view"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="w-full h-full overflow-y-auto px-10 py-12 z-10 custom-scrollbar"
-                  >
-                    <div className="max-w-5xl mx-auto space-y-20">
-                       {/* Identity Header */}
-                      <header className="space-y-6 relative group">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                             <div className="w-12 h-1 px-2 py-1 bg-[#4facfe] rounded opacity-50" />
-                             <h2 className="text-[12px] uppercase font-bold tracking-[0.4em] text-[#4facfe]">Brand Manifesto</h2>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              if (isEditingBrandKit) saveCurrent();
-                              setIsEditingBrandKit(!isEditingBrandKit);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all text-[#4facfe]"
-                          >
-                            {isEditingBrandKit ? (
-                              <>
-                                <ShieldCheck size={16} />
-                                <span className="text-[10px] uppercase font-bold tracking-widest text-white">Save Changes</span>
-                              </>
-                            ) : (
-                              <>
-                                <Wand2 size={16} />
-                                <span className="text-[10px] uppercase font-bold tracking-widest text-white">Refine Strategy</span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                        
-                        {isEditingBrandKit ? (
-                          <div className="space-y-4">
-                            <input 
-                              type="text" 
-                              value={brandKit.slogan || ''} 
-                              onChange={(e) => setBrandKit({...brandKit, slogan: e.target.value})}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-3xl font-bold focus:border-[#4facfe] outline-none"
-                              placeholder="Brand Slogan"
-                            />
-                            <textarea 
-                              value={brandKit.mission || ''} 
-                              onChange={(e) => setBrandKit({...brandKit, mission: e.target.value})}
-                              className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-lg text-white/60 focus:border-[#4facfe] outline-none h-32"
-                              placeholder="Mission Statement"
-                            />
-                            <div className="space-y-2">
-                               <label className="text-[10px] uppercase font-bold tracking-widest text-[#4facfe]/60">Brand Voice & Personality</label>
-                               <input 
-                                 type="text" 
-                                 value={brandKit.voice || ''} 
-                                 onChange={(e) => setBrandKit({...brandKit, voice: e.target.value})}
-                                 className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white/70 focus:border-[#4facfe] outline-none"
-                                 placeholder="e.g. Professional, Innovative, Precise"
-                               />
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <h1 className="text-5xl font-bold tracking-tight">{brandKit.slogan || 'Evolving Identity'}</h1>
-                            <p className="text-xl text-white/60 max-w-2xl leading-relaxed italic border-l-4 border-[#4facfe]/30 pl-8">{brandKit.mission || brandKit.voice}</p>
-                          </>
-                        )}
-                      </header>
-
-                      {/* Logo Construction Section */}
-                      <section className="grid grid-cols-1 lg:grid-cols-2 gap-16 py-12 border-y border-white/5 bg-white/[0.01] -mx-10 px-10">
-                        <div className="space-y-8">
-                          <div className="flex items-center gap-3">
-                            <LayoutGrid className="text-[#4facfe]" size={20} />
-                            <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">Logo Construction</h3>
-                          </div>
-                          <div className="aspect-video bg-black/40 rounded-[32px] border border-white/5 relative flex items-center justify-center overflow-hidden">
-                             {/* Safe Zone Grid */}
-                             <div className="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-10 pointer-events-none">
-                                {[...Array(24)].map((_, i) => <div key={i} className="border border-white/20" />)}
-                             </div>
-                             {/* Measurement Lines */}
-                             <div className="absolute w-[30%] border-t border-dashed border-[#4facfe]/40 top-[50%] -translate-y-1/2 left-[10%] flex justify-between px-2">
-                                <span className="text-[8px] text-[#4facfe] -mt-4 uppercase font-bold letter-spacing-widest">x-height</span>
-                                <span className="text-[8px] text-[#4facfe] -mt-4 uppercase font-bold letter-spacing-widest">unit</span>
-                             </div>
-                             <div className="absolute h-[30%] border-l border-dashed border-[#4facfe]/40 left-[50%] -translate-x-1/2 top-[15%] flex flex-col justify-between py-2">
-                                <span className="text-[8px] text-[#4facfe] -ml-4 rotate-90 origin-left uppercase font-bold">padding</span>
-                             </div>
-                             
-                             <div className="relative p-12 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                                <motion.img 
-                                  {...getAnimationProps(activeTab === 'design' ? animationPreset : 'None')}
-                                  src={imageOptions[selectedImageIndex || 0]?.url} 
-                                  className="w-32 h-32 object-contain filter drop-shadow-[0_0_20px_rgba(79,172,254,0.3)]" 
-                                  alt="Logo Construction" 
-                                />
-                                <div className="absolute -inset-4 border border-[#4facfe]/30 rounded-xl pointer-events-none" />
-                                <div className="absolute -inset-8 border border-[#4facfe]/10 rounded-2xl pointer-events-none" />
-                             </div>
-                             
-                             <div className="absolute bottom-6 left-8 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-[#4facfe]" />
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-[#4facfe]">Safe Exclusion Zone: 32px</span>
-                             </div>
-                          </div>
-                        </div>
-                        <div className="space-y-8">
-                           <div className="flex items-center gap-3">
-                              <Target className="text-[#4facfe]" size={20} />
-                              <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">Optical Balancing</h3>
-                           </div>
-                           <div className="space-y-6">
-                              <p className="text-sm text-white/50 leading-relaxed italic">"Architecture that respects the void. The SoloDesign identity system is built on a modular grid of 8, ensuring mathematical harmony across all touchpoints."</p>
-                              <div className="grid grid-cols-2 gap-4">
-                                 <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
-                                    <div className="text-[10px] uppercase font-bold tracking-widest text-white/30">Vertical Axis</div>
-                                    <div className="text-[14px]">Centric Align</div>
-                                 </div>
-                                 <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2">
-                                    <div className="text-[10px] uppercase font-bold tracking-widest text-white/30">Ratio</div>
-                                    <div className="text-[14px]">0.618 Golden</div>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                      </section>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                        {/* Typography Section */}
-                        <section className="space-y-8">
-                           <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-3">
-                                <Type className="text-[#4facfe]" size={20} />
-                                <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">System Typography</h3>
-                             </div>
-                           </div>
-                           
-                           <div className="space-y-10">
-                              {brandKit.typography.map((font, i) => (
-                                <div key={i} className={`flex flex-col space-y-4 ${i === 0 ? 'border-b border-white/5 pb-8' : ''}`}>
-                                   <div className="flex items-center justify-between">
-                                      <span className={`text-[10px] uppercase font-mono tracking-widest text-[#4facfe]/60`}>{i === 0 ? 'Primary Display' : 'Secondary Body'}</span>
-                                      <span className="text-[10px] text-white/20 font-mono italic">{font}</span>
-                                   </div>
-                                   <div className="relative group/type">
-                                      <span className="text-6xl font-light tracking-tighter leading-none block overflow-hidden truncate px-1" style={{ fontFamily: font }}>
-                                        {typographyTestText || font}
-                                      </span>
-                                   </div>
-                                </div>
-                              ))}
-                           </div>
-
-                           <div className="pt-6">
-                              <div className="p-4 bg-white/[0.03] border border-white/10 rounded-2xl space-y-3">
-                                 <h4 className="text-[9px] uppercase font-bold tracking-widest text-white/30">Type Playground</h4>
-                                 <input 
-                                   type="text" 
-                                   value={typographyTestText}
-                                   onChange={(e) => setTypographyTestText(e.target.value)}
-                                   placeholder="Test your brand typography..."
-                                   className="w-full bg-transparent border-b border-white/10 py-2 text-sm outline-none focus:border-[#4facfe] transition-colors"
-                                 />
-                              </div>
-                           </div>
-                        </section>
-
-                        {/* Color Section */}
-                        <section className="space-y-8">
-                           <div className="flex items-center gap-3">
-                              <Palette className="text-[#4facfe]" size={20} />
-                              <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">Chromatic DNA</h3>
-                           </div>
-                           <div className="grid grid-cols-2 gap-6">
-                              {[...palette, ...(brandKit.secondaryColors || [])].slice(0, 4).map((c, i) => (
-                                <div key={i} className="group relative">
-                                   <div className="h-48 rounded-2xl border border-white/10 shadow-2xl flex flex-col justify-end p-4 transition-transform hover:scale-[1.02]" style={{ backgroundColor: c }}>
-                                      <div className="bg-black/40 backdrop-blur-md p-3 rounded-xl border border-white/10 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                         <span className="text-[10px] font-mono font-bold uppercase">{c}</span>
-                                          <button 
-                                            onClick={() => copyToClipboard(c)} 
-                                            className="p-1.5 hover:bg-white/10 rounded-md transition-colors relative"
-                                          >
-                                            {copyStatus === c ? <ShieldCheck size={12} className="text-[#00ff7f]" /> : <FileCode size={12} />}
-                                            {copyStatus === c && (
-                                              <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-[#00ff7f] text-black text-[9px] font-bold px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
-                                                Copied!
-                                              </span>
-                                            )}
-                                          </button>
-                                      </div>
-                                   </div>
-                                   <div className="mt-3 flex flex-col">
-                                      <div className="flex justify-between items-center mb-1">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">{i === 0 ? 'Primary' : `Accent 0${i}`}</span>
-                                        {i > 0 && (
-                                          <div className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-tighter ${getContrastRatio(c, palette[0] || '#ffffff') >= 4.5 ? 'bg-[#00ff7f]/20 text-[#00ff7f]' : 'bg-red-400/20 text-red-400'}`}>
-                                            {getContrastRatio(c, palette[0] || '#ffffff').toFixed(1)}:1 {getContrastRatio(c, palette[0] || '#ffffff') >= 4.5 ? 'Pass' : 'Fail'}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <span className="text-[11px] font-mono opacity-30">{c}</span>
-                                   </div>
-                                </div>
-                              ))}
-                           </div>
-                        </section>
-                      </div>
-
-                      {/* Usage Rules & Code */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 pt-12 border-t border-white/5">
-                        <section className="space-y-8">
-                            <div className="flex items-center gap-3">
-                               <ShieldCheck className="text-[#4facfe]" size={20} />
-                               <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">System Logic & Voice</h3>
-                            </div>
-                            <div className="space-y-8">
-                               <div className="p-6 bg-white/[0.03] border border-white/10 rounded-3xl space-y-4">
-                                  <div className="flex items-center gap-2 text-[10px] uppercase font-black tracking-widest text-[#4facfe]">
-                                     <Volume2 size={14} /> Brand Resonance
-                                  </div>
-                                  <p className="text-sm text-white/70 leading-relaxed italic">"{brandKit.voice}"</p>
-                                  <div className="pt-2 flex flex-wrap gap-2">
-                                     {brandKit.voice.split(',').map((v: string, i: number) => (
-                                       <span key={i} className="px-2 py-1 bg-white/5 border border-white/10 rounded-md text-[9px] uppercase font-bold tracking-tighter text-white/40">
-                                         {v.trim()}
-                                       </span>
-                                     ))}
-                                  </div>
-                               </div>
-
-                               <div className="grid grid-cols-2 gap-8">
-                                  <div className="space-y-4">
-                                     <h4 className="text-[10px] uppercase font-bold text-[#00ff7f] tracking-widest">Always Do</h4>
-                                     {isEditingBrandKit ? (
-                                       <div className="space-y-2">
-                                         {(brandKit.usageRules?.do || []).map((rule, idx) => (
-                                           <div key={idx} className="flex gap-2">
-                                             <input 
-                                               type="text"
-                                               value={rule}
-                                               onChange={(e) => {
-                                                 const newDo = [...(brandKit.usageRules?.do || [])];
-                                                 newDo[idx] = e.target.value;
-                                                 setBrandKit({
-                                                   ...brandKit,
-                                                   usageRules: {
-                                                     ...(brandKit.usageRules || { dont: [] }),
-                                                     do: newDo
-                                                   }
-                                                 });
-                                               }}
-                                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-[#00ff7f]/50"
-                                             />
-                                             <button 
-                                               onClick={() => {
-                                                 const newDo = (brandKit.usageRules?.do || []).filter((_, i) => i !== idx);
-                                                 setBrandKit({
-                                                   ...brandKit,
-                                                   usageRules: {
-                                                     ...(brandKit.usageRules || { dont: [] }),
-                                                     do: newDo
-                                                   }
-                                                 });
-                                               }}
-                                               className="text-white/20 hover:text-red-400 p-1"
-                                             >
-                                               <X size={14} />
-                                             </button>
-                                           </div>
-                                         ))}
-                                         <button 
-                                           onClick={() => {
-                                             setBrandKit({
-                                               ...brandKit,
-                                               usageRules: {
-                                                 ...(brandKit.usageRules || { dont: [] }),
-                                                 do: [...(brandKit.usageRules?.do || []), '']
-                                               }
-                                             });
-                                           }}
-                                           className="text-[10px] uppercase font-bold text-[#00ff7f]/60 hover:text-[#00ff7f] flex items-center gap-1 mt-2"
-                                         >
-                                           <Plus size={12} /> Add Rule
-                                         </button>
-                                       </div>
-                                     ) : (
-                                       <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
-                                          {brandKit.usageRules?.do.map((r: string, i: number) => <li key={i}>{r}</li>) || <li>Maintain clear space</li>}
-                                       </ul>
-                                     )}
-                                  </div>
-                                  <div className="space-y-4">
-                                     <h4 className="text-[10px] uppercase font-bold text-red-400 tracking-widest">Never Do</h4>
-                                     {isEditingBrandKit ? (
-                                       <div className="space-y-2">
-                                          {(brandKit.usageRules?.dont || []).map((rule, idx) => (
-                                           <div key={idx} className="flex gap-2">
-                                             <input 
-                                               type="text"
-                                               value={rule}
-                                               onChange={(e) => {
-                                                 const newDont = [...(brandKit.usageRules?.dont || [])];
-                                                 newDont[idx] = e.target.value;
-                                                 setBrandKit({
-                                                   ...brandKit,
-                                                   usageRules: {
-                                                     ...(brandKit.usageRules || { do: [] }),
-                                                     dont: newDont
-                                                   }
-                                                 });
-                                               }}
-                                               className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-red-400/50"
-                                             />
-                                             <button 
-                                               onClick={() => {
-                                                 const newDont = (brandKit.usageRules?.dont || []).filter((_, i) => i !== idx);
-                                                 setBrandKit({
-                                                   ...brandKit,
-                                                   usageRules: {
-                                                     ...(brandKit.usageRules || { do: [] }),
-                                                     dont: newDont
-                                                   }
-                                                 });
-                                               }}
-                                               className="text-white/20 hover:text-red-400 p-1"
-                                             >
-                                               <X size={14} />
-                                             </button>
-                                           </div>
-                                         ))}
-                                         <button 
-                                           onClick={() => {
-                                             setBrandKit({
-                                               ...brandKit,
-                                               usageRules: {
-                                                 ...(brandKit.usageRules || { do: [] }),
-                                                 dont: [...(brandKit.usageRules?.dont || []), '']
-                                               }
-                                             });
-                                           }}
-                                           className="text-[10px] uppercase font-bold text-red-400/60 hover:text-red-400 flex items-center gap-1 mt-2"
-                                         >
-                                           <Plus size={12} /> Add Restriction
-                                         </button>
-                                       </div>
-                                     ) : (
-                                       <ul className="text-[13px] text-white/50 space-y-2 list-disc pl-4 leading-relaxed">
-                                          {brandKit.usageRules?.dont.map((r: string, i: number) => <li key={i}>{r}</li>) || <li>Distort aspect ratio</li>}
-                                       </ul>
-                                     )}
-                                  </div>
-                               </div>
-                            </div>
-                         </section>
-
-                        <section className="space-y-8">
-                           <div className="flex items-center gap-3">
-                              <FileCode className="text-[#4facfe]" size={20} />
-                              <h3 className="text-[11px] uppercase font-bold tracking-widest opacity-40">Developer Integration</h3>
-                           </div>
-                           <div className="space-y-4">
-                              <div className="bg-black/60 border border-white/10 rounded-2xl p-6 font-mono relative group">
-                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10"><FileCode size={16} /></button>
-                                </div>
-                                <pre className="text-[11px] text-[#4facfe]/80 leading-relaxed">
-{`:root {
-  --brand-primary: ${palette[0] || '#4facfe'};
-  --brand-accent: ${palette[1] || '#ffffff'};
-  --brand-font-display: "${brandKit.typography[0]}";
-  --brand-font-body: "${brandKit.typography[1]}";
-  --brand-radius: 16px;
-  --brand-shadow: 0 10px 40px rgba(0,0,0,0.4);
-}`}
-                                </pre>
-                              </div>
-                              <button 
-                                onClick={downloadFullBundle}
-                                disabled={isExporting}
-                                className="w-full py-4 bg-white text-black font-bold rounded-2xl hover:bg-opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
-                              >
-                                {isExporting ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
-                                {isExporting ? 'Packaging Bundle...' : 'Download Full Brand Identity (.zip)'}
-                              </button>
-                           </div>
-                        </section>
-                      </div>
-                    </div>
-                  </motion.div>
+                ) : activeTab === 'brand' ? (
+                  <BrandKitWorkspace
+                    brandKit={brandKit}
+                    setBrandKit={setBrandKit}
+                    palette={palette}
+                    handlePaletteChange={handlePaletteChange}
+                    imageOptions={imageOptions}
+                    selectedImageIndex={selectedImageIndex}
+                    isGeneratingBrandKit={isGeneratingBrandKit}
+                    generateBrandKit={generateBrandKit}
+                    isEditingBrandKit={isEditingBrandKit}
+                    setIsEditingBrandKit={setIsEditingBrandKit}
+                    saveCurrent={saveCurrent}
+                    CURATED_FONTS={CURATED_FONTS}
+                    description={description}
+                    isExporting={isExporting}
+                    downloadFullBundle={downloadFullBundle}
+                  />
                 ) : activeTab === 'assets' ? (
                   <motion.div
                     key="assets-view"
@@ -2699,6 +2475,22 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                    >
                      <div className="flex-1 flex items-center justify-center relative">
                         <AnimatePresence mode="wait">
+                           {selectedMockup === 'physicalStudio' && (
+                              <motion.div 
+                                key="physical-studio-scene"
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="w-full h-full flex flex-col"
+                              >
+                                 <PhysicalMockupStudio 
+                                    logoUrl={watermarkedImageUrl || imageOptions[selectedImageIndex || 0]?.url || ''} 
+                                    palette={brandKit?.palette || palette || []}
+                                    slogan={brandKit?.slogan || ''}
+                                 />
+                              </motion.div>
+                           )}
+
                            {selectedMockup === 'phone' && (
                               <motion.div 
                                 key="phone-scene"
@@ -2813,6 +2605,13 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
 
                      <div className="mt-12 flex flex-col items-center gap-6">
                         <div className="flex bg-white/5 backdrop-blur-xl p-2 rounded-[24px] border border-white/10 shadow-2xl">
+                           <button 
+                             onClick={() => setSelectedMockup('physicalStudio')}
+                             className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl transition-all duration-300 ${selectedMockup === 'physicalStudio' ? 'bg-[#4facfe] text-white shadow-[0_10px_30px_rgba(79,172,254,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                           >
+                              <Sparkles size={24} />
+                              <span className="text-[10px] uppercase font-bold tracking-widest">Product Studio</span>
+                           </button>
                            <button 
                              onClick={() => setSelectedMockup('phone')}
                              className={`flex flex-col items-center gap-2 px-6 py-4 rounded-2xl transition-all duration-300 ${selectedMockup === 'phone' ? 'bg-[#4facfe] text-white shadow-[0_10px_30px_rgba(79,172,254,0.4)]' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
@@ -3015,7 +2814,7 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                       </div>
                     </div>
                     <p className="text-xs text-white/40 leading-relaxed">
-                      Evaluate standard branding functions on isolated simulation sandbox nodes.
+                      Evaluate standard design channels and publish real brand systems to the community.
                     </p>
                     <div className="border-t border-white/5 pt-4 space-y-2">
                       <div className="flex items-center gap-2 text-xs text-white/70">

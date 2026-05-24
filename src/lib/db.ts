@@ -58,6 +58,10 @@ export interface BrandKit {
     do: string[];
     dont: string[];
   };
+  manifesto?: string;
+  vision?: string;
+  targetAudience?: string;
+  features?: { title: string; description: string }[];
 }
 
 export interface Project {
