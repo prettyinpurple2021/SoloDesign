@@ -8,7 +8,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 // Body parser with 10MB limit to safely pass high-resolution 4K base64 brand assets
 app.use(express.json({ limit: "25mb" }));
