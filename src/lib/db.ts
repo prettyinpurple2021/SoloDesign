@@ -109,8 +109,14 @@ export interface Template {
   createdAt: number;
 }
 
-const CHUNK_SIZE = 800000; // 800kb per document chunk to avoid 1MB limits safely
+const CHUNK_SIZE = 800000; // 800kb per document chunk to avoid Firestore's 1MB document storage limit safely
 
+/**
+ * BLOB-TO-BASE64 CONVERSION UTILITY
+ * ──────────────────────────────────────────────────────────────────────────
+ * Serializes local custom Media Blobs (such as compiled MP4 motion variants)
+ * into high-fidelity URI streams ready to pass securely into database payloads.
+ */
 const blobToBase64 = (blob: Blob): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -120,6 +126,16 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   });
 };
 
+/**
+ * SECURE BRAND PROJECT WRITER
+ * ──────────────────────────────────────────────────────────────────────────
+ * Writes full brand kits, style guides, and design permutations to Cloud Firestore.
+ * 
+ * DESIGN CONSTRAINTS (FIRESTORE 1MB LIMIT BYPASS):
+ * Because uncompressed 4K brand assets easily cross Firestore's native 1MB limits,
+ * we split all heavy image configurations and MP4 buffers into distinct chunks of 800KB.
+ * Each chunk is written as an independent sub-document, reference-mapped in a '_meta' doc.
+ */
 export async function saveProject(project: Project): Promise<void> {
   const user = auth.currentUser;
   if (!user) throw new Error('User not logged in');

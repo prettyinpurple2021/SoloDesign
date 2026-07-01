@@ -4,12 +4,40 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import { initializeApp, getApps, getApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import fs from "fs";
+
+/**
+ * SOLODESIGN FULL-STACK MONARCH SERVER (DEVELOPER DOCUMENTATION)
+ * ──────────────────────────────────────────────────────────────────────────
+ * This Node.js server controls all secure pipelines, subscription transactions, 
+ * and AI generation actions (Gemini + Veo model calls). By centralizing client secrets 
+ * server-side, we completely secure all Stripe, Gemini, and Firestore interactions 
+ * from public client exposure.
+ * 
+ * CORE PIPELINE PILLARS:
+ * 1. PAYLOAD OPTIMIZATION & INGRESS LIMITS:
+ *    - To support processing high-resolution 4K brand assets in base64 without JSON overflow,
+ *      express body parses are scaled to 25MB (`express.json({ limit: "25mb" })`).
+ * 
+ * 2. RECOVERY & LAZY SDK INITIALIZERS:
+ *    - We employ lazy client loaders (`getGeminiClient()` and `getStripe()`) to prevent immediate
+ *      startup loops if keys aren't provisioned. Clear errors guide the developer immediately.
+ * 
+ * 3. HYBRID PAYMENT COMPOSER:
+ *    - Stripe checkout flows seamlessly fall back to a high-fidelity payment sandbox simulation
+ *      whenever Stripe keys are absent, keeping customer acquisition and onboarding fully active.
+ * 
+ * 4. MONOLITHIC VITE COMPILATION:
+ *    - Integrates Vite development middleware during testing and serves fully compiled static asset
+ *      trees inside `/dist` under production variables.
+ */
 
 dotenv.config();
 
 const app = express();
-// Falls back to 3000 for local dev; Docker sets ENV PORT=8080 for container deployments
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 // Body parser with 10MB limit to safely pass high-resolution 4K base64 brand assets
 app.use(express.json({ limit: "25mb" }));
@@ -43,6 +71,35 @@ function getStripe(): Stripe | null {
     });
   }
   return stripeClient;
+}
+
+// Lazy initializer for Firestore Admin
+let adminDb: any = null;
+function getAdminDb(): any {
+  if (!adminDb) {
+    try {
+      const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        
+        // Only initialize if not already initialized
+        if (getApps().length === 0) {
+          initializeApp({
+            projectId: config.projectId,
+          });
+        }
+        
+        // Grab the custom firestore database id
+        adminDb = getFirestore(getApp(), config.firestoreDatabaseId);
+        console.log(`Firebase Admin DB initialized for project: ${config.projectId}, db: ${config.firestoreDatabaseId}`);
+      } else {
+        console.warn("firebase-applet-config.json not found inside backend context.");
+      }
+    } catch (e) {
+      console.error("Error setting up Firebase Admin Firestore:", e);
+    }
+  }
+  return adminDb;
 }
 
 // --- SECURE BACKEND API ENDPOINTS ---
@@ -246,7 +303,7 @@ app.post("/api/generate-colors", async (req, res) => {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.5-flash",
       contents: { parts },
     });
 
@@ -437,7 +494,19 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
 
       if (userId && tier) {
         console.log(`Real subscription payment finalized. Provisioning subscriber status for ${userId} to rank ${tier}`);
-        // NOTE: Firestore writes here can sync subscription info securely.
+        const dbRef = getAdminDb();
+        if (dbRef) {
+          const docRef = dbRef.collection("user_subscriptions").doc(userId);
+          await docRef.set({
+            userId,
+            tier,
+            credits: tier === 'Pro' ? 9999 : 99999,
+            updatedAt: Date.now()
+          }, { merge: true });
+          console.log(`Successfully updated database subscription state to: ${tier} for user ${userId}`);
+        } else {
+          console.error("Firebase database reference not available during Stripe Webhook session completion.");
+        }
       }
     }
 

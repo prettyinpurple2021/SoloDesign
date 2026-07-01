@@ -32,9 +32,22 @@ export function getContrastRatio(hex1: string, hex2: string): number {
   return (brighter + 0.05) / (darker + 0.05);
 }
 
-const STYLE_PRESETS = [
-  'Logo', 'Minimalist', 'Corporate', 'Futuristic', 'Vintage', '3D', 'Vector', 'Flat', 'Photorealistic', 'Artistic'
+const STYLE_PRESET_GROUPS = [
+  {
+    category: 'Core',
+    presets: ['Logo', 'Corporate', 'Flat', 'Vector']
+  },
+  {
+    category: 'Modern',
+    presets: ['Minimalist', 'Futuristic', '3D']
+  },
+  {
+    category: 'Vintage & Creative',
+    presets: ['Vintage', 'Photorealistic', 'Artistic']
+  }
 ];
+
+const STYLE_PRESETS = STYLE_PRESET_GROUPS.flatMap(group => group.presets);
 
 const ANIMATION_PRESETS = [
   'Subtle Zoom', 'Floating', 'Pulse', 'Spin', 'Glitch', 'Shake', 'None'
@@ -371,7 +384,11 @@ export default function App() {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             const data = docSnap.data();
-            setUserTier(data.tier || 'Trial');
+            const tier = data.tier || 'Trial';
+            setUserTier(tier);
+            if (tier === 'Trial') {
+              setWatermarkEnabled(true);
+            }
             setUserCredits(data.credits !== undefined ? data.credits : 3);
           } else {
             // New user registration flow
@@ -383,6 +400,7 @@ export default function App() {
               createdAt: Date.now()
             });
             setUserTier('Trial');
+            setWatermarkEnabled(true);
             setUserCredits(3);
           }
         } catch (e) {
@@ -600,6 +618,16 @@ export default function App() {
     return isBgDark ? '#ffffff' : '#0e1726';
   };
 
+  const handleHealColor = async (index: number, targetLevel: 'AA' | 'AAA') => {
+    if (palette[index]) {
+      const originalColor = palette[index];
+      const healedColor = autoHealContrast(originalColor, '#FFFFFF', targetLevel);
+      const updatedPalette = [...palette];
+      updatedPalette[index] = healedColor;
+      await handlePaletteChange(updatedPalette);
+    }
+  };
+
   const downloadFullBundle = async () => {
     if (!brandKit || selectedImageIndex === null) return;
     setIsExporting(true);
@@ -663,10 +691,66 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
         
         const cssContent = `:root {
   --brand-primary: ${palette[0] || '#4facfe'};
+  --brand-secondary: ${palette[1] || '#ffffff'};
   --brand-font-display: "${brandKit.typography[0]}";
   --brand-font-body: "${brandKit.typography[1]}";
 }`;
         guidelinesFolder.file("Brand_Tokens.css", cssContent);
+
+        // JSON Manifest
+        const manifestContent = JSON.stringify({
+          brandDescription: description,
+          slogan: brandKit.slogan,
+          mission: brandKit.mission,
+          editorialVoice: brandKit.voice,
+          colorPalette: {
+            primary: palette[0] || "#4facfe",
+            secondary: palette[1] || "#ffffff",
+            complementary: palette.slice(2)
+          },
+          typography: {
+            display: brandKit.typography[0],
+            body: brandKit.typography[1]
+          },
+          targetAudienceProfile: brandKit.targetAudience,
+          strategicVision: brandKit.vision,
+          usageDesignRules: brandKit.usageRules
+        }, null, 2);
+        guidelinesFolder.file("Brand_Manifest.json", manifestContent);
+        
+        // 4. Mobile Asset Pack Folder
+        const mobileFolder = zip.folder("04_Mobile_AssetPack");
+        if (mobileFolder) {
+          // Android res/values colors.xml
+          const androidXml = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_primary">${palette[0] || '#4facfe'}</color>
+    <color name="brand_secondary">${palette[1] || '#ffffff'}</color>
+${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</color>`).join('\n')}
+</resources>`;
+          mobileFolder.file("colors.xml", androidXml);
+
+          // iOS colors asset catalog config
+          const cleanHex = (hex: string) => hex.startsWith('#') ? hex.slice(1) : hex;
+          const iosColors = palette.map((c, i) => {
+            const h = cleanHex(c);
+            const r = h.length === 6 ? parseInt(h.substring(0, 2), 16) : h.length === 3 ? parseInt(h[0] + h[0], 16) : 255;
+            const g = h.length === 6 ? parseInt(h.substring(2, 4), 16) : h.length === 3 ? parseInt(h[1] + h[1], 16) : 255;
+            const b = h.length === 6 ? parseInt(h.substring(4, 6), 16) : h.length === 3 ? parseInt(h[2] + h[2], 16) : 255;
+            return {
+              colorName: i === 0 ? "brand_primary" : i === 1 ? "brand_secondary" : `brand_accent_${i}`,
+              red: (r / 255).toFixed(3),
+              green: (g / 255).toFixed(3),
+              blue: (b / 255).toFixed(3)
+            };
+          });
+
+          const iosColorsContent = JSON.stringify({
+            info: { version: 1, author: "xcode" },
+            colors: iosColors
+          }, null, 2);
+          mobileFolder.file("iOS_BrandColors_Contents.json", iosColorsContent);
+        }
       }
 
       const content = await zip.generateAsync({ type: "blob" });
@@ -1280,6 +1364,10 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
   };
 
   const toggleWatermark = async () => {
+    if (userTier === 'Trial') {
+      alert("🔒 Watermarks are locked for Free Trial users. Upgrade to Pro or Agency tier to unlock watermark-free, uncompressed renders!");
+      return;
+    }
     const newState = !watermarkEnabled;
     setWatermarkEnabled(newState);
     await saveCurrent({ watermarkEnabled: newState });
@@ -1730,12 +1818,18 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                 <div id="style-presets" className="space-y-2">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest">Style Preset</span>
                   <select
-                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black"
+                    className="w-full bg-black/20 border border-white/10 rounded-lg p-2.5 text-[13px] focus:outline-none focus:border-[#4facfe] transition-all appearance-none text-white [&>option]:text-black [&>optgroup]:text-[#4facfe] [&>optgroup]:bg-[#12131a] [&>optgroup]:font-mono [&>optgroup]:text-[11px]"
                     value={stylePreset}
                     onChange={(e) => setStylePreset(e.target.value)}
                   >
-                    {STYLE_PRESETS.map(style => (
-                      <option key={style} value={style}>{style}</option>
+                    {STYLE_PRESET_GROUPS.map(group => (
+                      <optgroup key={group.category} label={group.category}>
+                        {group.presets.map(style => (
+                          <option key={style} value={style}>
+                            {style}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>
@@ -1939,21 +2033,45 @@ ${brandKit.usageRules?.dont.map(r => `- ${r}`).join('\n')}
                               <span className="text-[12px] font-black text-white font-mono">{ratio.toFixed(2)}:1</span>
                             </div>
                             
-                            <div className="flex flex-col gap-0.5 text-[8px] font-bold text-center">
-                              <span className={`px-1.5 py-0.5 rounded-sm uppercase text-[8px] ${
-                                normalAA 
-                                  ? 'text-teal-400 bg-teal-400/15 border border-teal-500/20' 
-                                  : 'text-amber-400 bg-[#3a2f1d] border border-amber-500/20'
-                              }`}>
-                                AA: {normalAA ? 'Pass' : 'Fail'}
-                              </span>
-                              <span className={`px-1.5 py-0.5 rounded-sm uppercase text-[8px] ${
-                                normalAAA 
-                                  ? 'text-purple-400 bg-purple-400/15 border border-purple-500/20' 
-                                  : 'text-zinc-500 bg-zinc-800 border border-zinc-700/50'
-                              }`}>
-                                AAA: {normalAAA ? 'Pass' : 'Fail'}
-                              </span>
+                            <div className="flex flex-col gap-1 text-[8px] font-bold text-center font-mono">
+                              <div className="flex items-center gap-1 justify-end">
+                                <span className={`px-1.5 py-0.5 rounded shadow-sm uppercase text-[8px] min-w-[54px] ${
+                                  normalAA 
+                                    ? 'text-teal-400 bg-teal-400/15 border border-teal-500/20' 
+                                    : 'text-amber-400 bg-[#3a2f1d] border border-amber-500/20'
+                                }`}>
+                                  AA: {normalAA ? 'Pass' : 'Fail'}
+                                </span>
+                                {!normalAA && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleHealColor(i, 'AA')}
+                                    title="Auto-shift this shade to comply with WCAG AA (4.5:1 ratio)"
+                                    className="px-1 py-0.5 rounded bg-amber-400/10 text-amber-300 border border-amber-500/30 hover:bg-amber-400/20 active:scale-95 transition-all text-[8px] uppercase font-black font-mono cursor-pointer"
+                                  >
+                                    Heal
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 justify-end">
+                                <span className={`px-1.5 py-0.5 rounded shadow-sm uppercase text-[8px] min-w-[54px] ${
+                                  normalAAA 
+                                    ? 'text-purple-400 bg-purple-400/15 border border-purple-500/20' 
+                                    : 'text-zinc-500 bg-zinc-800 border border-zinc-700/50'
+                                }`}>
+                                  AAA: {normalAAA ? 'Pass' : 'Fail'}
+                                </span>
+                                {!normalAAA && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleHealColor(i, 'AAA')}
+                                    title="Auto-shift this shade to comply with WCAG AAA (7.0:1 ratio)"
+                                    className="px-1 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 active:scale-95 transition-all text-[8px] uppercase font-black font-mono cursor-pointer"
+                                  >
+                                    Heal
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
