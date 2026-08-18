@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -38,6 +39,9 @@ dotenv.config();
 
 const app = express();
 const PORT = 3000;
+
+// Explicitly enable CORS
+app.use(cors({ origin: process.env.ALLOWED_ORIGIN || "*" }));
 
 // Body parser with 10MB limit to safely pass high-resolution 4K base64 brand assets
 app.use(express.json({ limit: "25mb" }));
