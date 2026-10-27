@@ -72,7 +72,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && incoming().userId == request.auth.uid;
       // Allow any signed in user to update the post (for adding/removing likes and comments) or if they are the owner
-      allow update: if isSignedIn();
+      allow update: if isSignedIn() && (
+        (isOwner(existing().userId) && incoming().userId == existing().userId) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'comments']))
+      );
       allow delete: if isOwner(existing().userId);
     }
 
