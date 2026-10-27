@@ -217,6 +217,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
             onClick={() => setShowBlueprintGrid(!showBlueprintGrid)}
             className={`p-2 rounded-xl border transition-all ${showBlueprintGrid ? 'bg-[#4facfe]/20 border-[#4facfe] text-[#4facfe]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
             title="Toggle Blueprint Matrix Overlay"
+            aria-label="Toggle blueprint grid"
           >
             <Grid size={15} />
           </button>
@@ -225,6 +226,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
             onClick={() => setShowSafeZone(!showSafeZone)}
             className={`p-2 rounded-xl border transition-all ${showSafeZone ? 'bg-[#4facfe]/20 border-[#4facfe] text-[#4facfe]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
             title="Toggle Safe Alignment Boundaries"
+            aria-label="Toggle safe zone"
           >
             <Maximize2 size={15} />
           </button>
@@ -603,6 +605,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
                 className={`w-7 h-7 rounded-lg border relative transition-transform hover:scale-110 active:scale-95 flex items-center justify-center ${productColor === color ? 'border-white scale-105 shadow-inner' : 'border-white/10'}`}
                 style={{ backgroundColor: color }}
                 title={`Apply Brand Accent Color: ${color}`}
+                aria-label={`Apply color ${color}`}
               >
                 {productColor === color && <Check size={11} className="text-white filter drop-shadow mix-blend-difference" />}
               </button>
@@ -614,6 +617,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
               onClick={() => setProductColor('#ffffff')}
               className={`w-7 h-7 rounded-lg border border-white/10 relative bg-white transition-all flex items-center justify-center hover:scale-110 ${productColor === '#ffffff' ? 'border-[#4facfe] ring-2 ring-[#4facfe]/40' : ''}`}
               title="Apply Studio White"
+              aria-label="Apply Studio White"
             >
               {productColor === '#ffffff' && <Check size={11} className="text-black" />}
             </button>

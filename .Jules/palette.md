@@ -1,0 +1,3 @@
+## 2024-05-24 - Missing Aria-labels on Icon-only buttons
+**Learning:** Found a pattern of missing `aria-label` attributes on icon-only buttons, especially those inside `.map` loops rendering lists like saved projects or templates. These cause severe accessibility issues for screen readers.
+**Action:** Always verify that buttons containing only icons (like `Trash2`, `X`, `Undo2`, etc.) include an explicit `aria-label` to ensure proper accessibility.
