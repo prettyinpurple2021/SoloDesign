@@ -1546,7 +1546,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                  <p className="text-sm text-white/50">Your custom project starting points</p>
                </div>
             </div>
-            <button onClick={() => setShowTemplates(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
+            <button onClick={() => setShowTemplates(false)} aria-label="Close templates" className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
               <X size={16} /> Close
             </button>
           </div>
@@ -1569,7 +1569,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           </div>
                           <h3 className="font-bold text-[18px] text-white line-clamp-1">{t.name}</h3>
                         </div>
-                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} aria-label="Delete template" className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1619,7 +1619,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                </div>
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setShowProjects(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
+              <button onClick={() => setShowProjects(false)} aria-label="Close saved designs" className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
                 <X size={16} /> Close
               </button>
               <button onClick={startNewProject} className="px-5 py-2.5 bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
@@ -1655,7 +1655,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
                           <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
                         </div>
-                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button onClick={(e) => handleDeleteProject(p.id, e)} aria-label="Delete project" className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1912,6 +1912,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     disabled={palettePointer <= 0}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     title="Undo Palette Change"
+                    aria-label="Undo palette change"
                   >
                     <Undo2 size={12} />
                   </button>
@@ -1920,6 +1921,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     disabled={palettePointer >= paletteHistory.length - 1}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     title="Redo Palette Change"
+                    aria-label="Redo palette change"
                   >
                     <Redo2 size={12} />
                   </button>
@@ -1944,6 +1946,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                       onClick={(e) => { e.stopPropagation(); handlePaletteRemove(i); }}
                       className="absolute -top-1 -right-1 bg-red-500/90 hover:bg-red-500 text-white rounded-full w-[18px] h-[18px] flex items-center justify-center opacity-0 group-hover:opacity-100 text-[10px] transition-all backdrop-blur-md"
                       title="Remove color"
+                      aria-label="Remove color"
                     >
                       <X size={10} />
                     </button>
@@ -2142,6 +2145,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     onClick={handleUndo} 
                     disabled={historyPointer <= 0}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Undo design refinement"
                   >
                     <Undo2 size={14} />
                   </button>
@@ -2149,6 +2153,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     onClick={handleRedo} 
                     disabled={historyPointer >= editHistory.length - 1}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Redo design refinement"
                   >
                     <Redo2 size={14} />
                   </button>
@@ -2320,7 +2325,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 >
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Save Template</h2>
-                    <button onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
+                    <button onClick={() => setShowSaveTemplateModal(false)} aria-label="Close template modal" className="text-white/40 hover:text-white transition-colors">
                       <X size={24} />
                     </button>
                   </div>
@@ -2543,8 +2548,8 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                              <h4 className="font-bold text-[15px]">{icon.label}</h4>
                              
                              <div className="mt-4 pt-4 border-t border-white/5 flex justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Download PNG"><Download size={14} /></button>
-                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Copy SVG Vector"><FileCode size={14} /></button>
+                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Download PNG" aria-label="Download PNG"><Download size={14} /></button>
+                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Copy SVG Vector" aria-label="Copy SVG Vector"><FileCode size={14} /></button>
                              </div>
                           </motion.div>
                         ))}
@@ -2898,6 +2903,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
             >
               <button 
                 onClick={() => setShowBillingModal(false)}
+                aria-label="Close billing modal"
                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition-all"
               >
                 <X size={20} />
