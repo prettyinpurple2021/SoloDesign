@@ -1,0 +1,3 @@
+## 2024-03-24 - Accessibility of icon-only buttons
+**Learning:** Icon-only buttons lacking `aria-label`s and `title` attributes present significant accessibility challenges for screen readers and usability hurdles for users relying on hover text. Adding `focus-visible` ring utilities ensures keyboard users can visually identify which element currently has focus, especially critical in dense UIs with multiple interactive icons.
+**Action:** Always verify that icon-only interactive elements contain accessible labels and focus visibility states. Establish a pattern for using utility classes (like `focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:outline-none`) across the design system for consistent keyboard navigation feedback.
