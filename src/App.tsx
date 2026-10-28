@@ -1569,7 +1569,12 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           </div>
                           <h3 className="font-bold text-[18px] text-white line-clamp-1">{t.name}</h3>
                         </div>
-                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button
+                          onClick={(e) => handleDeleteTemplate(t.id, e)}
+                          className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none"
+                          aria-label="Delete template"
+                          title="Delete template"
+                        >
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1655,7 +1660,12 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
                           <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
                         </div>
-                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button
+                          onClick={(e) => handleDeleteProject(p.id, e)}
+                          className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10 focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none"
+                          aria-label="Delete project"
+                          title="Delete project"
+                        >
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -2141,14 +2151,18 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                   <button 
                     onClick={handleUndo} 
                     disabled={historyPointer <= 0}
-                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[#4facfe] focus-visible:outline-none"
+                    aria-label="Undo edit"
+                    title="Undo edit"
                   >
                     <Undo2 size={14} />
                   </button>
                   <button 
                     onClick={handleRedo} 
                     disabled={historyPointer >= editHistory.length - 1}
-                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:ring-2 focus-visible:ring-[#4facfe] focus-visible:outline-none"
+                    aria-label="Redo edit"
+                    title="Redo edit"
                   >
                     <Redo2 size={14} />
                   </button>
