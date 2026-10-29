@@ -1034,6 +1034,7 @@ export function BrandKitWorkspace({
                           <button 
                             onClick={() => copyToClipboard(c)} 
                             className="text-white/40 hover:text-white transition-colors"
+                            aria-label="Copy color code"
                           >
                             <Copy size={12} />
                           </button>
@@ -1172,6 +1173,7 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove usage rule"
                           >
                             <X size={14} />
                           </button>
@@ -1233,6 +1235,7 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove usage restriction"
                           >
                             <X size={14} />
                           </button>
@@ -1340,6 +1343,7 @@ export function BrandKitWorkspace({
                       }}
                       className="p-2 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 text-white"
                       title="Copy Tokens"
+                      aria-label="Copy Tokens"
                     >
                       {copyStatus === 'copied' ? "Copied!" : <Copy size={14} />}
                     </button>
