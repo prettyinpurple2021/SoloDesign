@@ -1569,7 +1569,11 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           </div>
                           <h3 className="font-bold text-[18px] text-white line-clamp-1">{t.name}</h3>
                         </div>
-                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button
+                          onClick={(e) => handleDeleteTemplate(t.id, e)}
+                          aria-label="Delete template"
+                          className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10"
+                        >
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1655,7 +1659,11 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
                           <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
                         </div>
-                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button
+                          onClick={(e) => handleDeleteProject(p.id, e)}
+                          aria-label="Delete project"
+                          className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10"
+                        >
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -2141,6 +2149,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                   <button 
                     onClick={handleUndo} 
                     disabled={historyPointer <= 0}
+                    aria-label="Undo"
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <Undo2 size={14} />
@@ -2148,6 +2157,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                   <button 
                     onClick={handleRedo} 
                     disabled={historyPointer >= editHistory.length - 1}
+                    aria-label="Redo"
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     <Redo2 size={14} />
@@ -2320,7 +2330,11 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 >
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Save Template</h2>
-                    <button onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
+                    <button
+                      onClick={() => setShowSaveTemplateModal(false)}
+                      aria-label="Close modal"
+                      className="text-white/40 hover:text-white transition-colors"
+                    >
                       <X size={24} />
                     </button>
                   </div>
@@ -2898,6 +2912,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
             >
               <button 
                 onClick={() => setShowBillingModal(false)}
+                aria-label="Close billing modal"
                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition-all"
               >
                 <X size={20} />
