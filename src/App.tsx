@@ -1912,6 +1912,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     disabled={palettePointer <= 0}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     title="Undo Palette Change"
+                    aria-label="Undo Palette Change"
                   >
                     <Undo2 size={12} />
                   </button>
@@ -1920,6 +1921,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     disabled={palettePointer >= paletteHistory.length - 1}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                     title="Redo Palette Change"
+                    aria-label="Redo Palette Change"
                   >
                     <Redo2 size={12} />
                   </button>
@@ -2142,6 +2144,8 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     onClick={handleUndo} 
                     disabled={historyPointer <= 0}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Undo Design Refinement"
+                    title="Undo Design Refinement"
                   >
                     <Undo2 size={14} />
                   </button>
@@ -2149,6 +2153,8 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     onClick={handleRedo} 
                     disabled={historyPointer >= editHistory.length - 1}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Redo Design Refinement"
+                    title="Redo Design Refinement"
                   >
                     <Redo2 size={14} />
                   </button>
@@ -2543,8 +2549,8 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                              <h4 className="font-bold text-[15px]">{icon.label}</h4>
                              
                              <div className="mt-4 pt-4 border-t border-white/5 flex justify-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Download PNG"><Download size={14} /></button>
-                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Copy SVG Vector"><FileCode size={14} /></button>
+                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Download PNG" aria-label="Download PNG"><Download size={14} /></button>
+                                <button className="p-2 text-white/30 hover:text-white transition-colors" title="Copy SVG Vector" aria-label="Copy SVG Vector"><FileCode size={14} /></button>
                              </div>
                           </motion.div>
                         ))}
