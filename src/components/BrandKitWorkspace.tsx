@@ -1032,6 +1032,7 @@ export function BrandKitWorkspace({
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] uppercase font-mono text-white/30">{i === 0 ? 'Primary shade' : `Auxiliary Accent 0${i}`}</span>
                           <button 
+                            aria-label={`Copy hex code ${c} to clipboard`}
                             onClick={() => copyToClipboard(c)} 
                             className="text-white/40 hover:text-white transition-colors"
                           >
@@ -1172,6 +1173,7 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove DO rule"
                           >
                             <X size={14} />
                           </button>
@@ -1233,6 +1235,7 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove DONT rule"
                           >
                             <X size={14} />
                           </button>

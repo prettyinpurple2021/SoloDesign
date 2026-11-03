@@ -214,6 +214,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
         <div className="absolute top-4 right-6 z-20 flex items-center gap-3">
           <button 
             type="button"
+            aria-label="Toggle Blueprint Matrix Overlay"
             onClick={() => setShowBlueprintGrid(!showBlueprintGrid)}
             className={`p-2 rounded-xl border transition-all ${showBlueprintGrid ? 'bg-[#4facfe]/20 border-[#4facfe] text-[#4facfe]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
             title="Toggle Blueprint Matrix Overlay"
@@ -222,6 +223,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
           </button>
           <button 
             type="button"
+            aria-label="Toggle Safe Alignment Boundaries"
             onClick={() => setShowSafeZone(!showSafeZone)}
             className={`p-2 rounded-xl border transition-all ${showSafeZone ? 'bg-[#4facfe]/20 border-[#4facfe] text-[#4facfe]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
             title="Toggle Safe Alignment Boundaries"
@@ -599,6 +601,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
               <button
                 key={`${color}-${index}`}
                 type="button"
+                aria-label={`Apply Brand Accent Color: ${color}`}
                 onClick={() => setProductColor(color)}
                 className={`w-7 h-7 rounded-lg border relative transition-transform hover:scale-110 active:scale-95 flex items-center justify-center ${productColor === color ? 'border-white scale-105 shadow-inner' : 'border-white/10'}`}
                 style={{ backgroundColor: color }}
@@ -611,6 +614,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
             {/* Standard White option */}
             <button
               type="button"
+              aria-label="Apply Studio White"
               onClick={() => setProductColor('#ffffff')}
               className={`w-7 h-7 rounded-lg border border-white/10 relative bg-white transition-all flex items-center justify-center hover:scale-110 ${productColor === '#ffffff' ? 'border-[#4facfe] ring-2 ring-[#4facfe]/40' : ''}`}
               title="Apply Studio White"
@@ -621,6 +625,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
             {/* Default Studio Black option */}
             <button
               type="button"
+              aria-label="Apply Deep Charcoal"
               onClick={() => setProductColor('#0f1016')}
               className={`w-7 h-7 rounded-lg border border-white/10 relative bg-[#0f1016] transition-all flex items-center justify-center hover:scale-110 ${productColor === '#0f1016' ? 'border-[#4facfe] ring-2 ring-[#4facfe]/40' : ''}`}
               title="Apply Deep Charcoal"
@@ -650,6 +655,7 @@ export function PhysicalMockupStudio({ logoUrl, palette, slogan }: PhysicalMocku
             </div>
             <button 
               type="button"
+              aria-label="Reset Transforms"
               onClick={resetTransforms}
               className="text-[9px] tracking-wide uppercase font-mono text-white/40 hover:text-white flex items-center gap-1 transition-colors"
             >

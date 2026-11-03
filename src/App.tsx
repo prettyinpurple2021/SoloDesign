@@ -1546,7 +1546,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                  <p className="text-sm text-white/50">Your custom project starting points</p>
                </div>
             </div>
-            <button onClick={() => setShowTemplates(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
+            <button aria-label="Close templates" onClick={() => setShowTemplates(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
               <X size={16} /> Close
             </button>
           </div>
@@ -1569,7 +1569,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           </div>
                           <h3 className="font-bold text-[18px] text-white line-clamp-1">{t.name}</h3>
                         </div>
-                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button aria-label="Delete template" onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1619,7 +1619,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                </div>
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setShowProjects(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
+              <button aria-label="Close saved designs" onClick={() => setShowProjects(false)} className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-full text-sm font-semibold hover:bg-white/10 transition flex items-center gap-2">
                 <X size={16} /> Close
               </button>
               <button onClick={startNewProject} className="px-5 py-2.5 bg-white text-black rounded-full text-sm font-semibold hover:bg-gray-200 transition flex items-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
@@ -1655,7 +1655,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
                           <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
                         </div>
-                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button aria-label="Delete design" onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1722,6 +1722,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
               </div>
               
               <button 
+                aria-label="Sign Out of Session"
                 onClick={logoutUser}
                 className="flex items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 text-white/60 transition-all font-mono text-[9px] font-bold uppercase tracking-widest gap-1 shrink-0"
                 title="Sign Out of Session"
@@ -1908,6 +1909,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 </label>
                 <div className="flex gap-2">
                   <button 
+                    aria-label="Undo Palette Change"
                     onClick={undoPalette}
                     disabled={palettePointer <= 0}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -1916,6 +1918,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     <Undo2 size={12} />
                   </button>
                   <button 
+                    aria-label="Redo Palette Change"
                     onClick={redoPalette}
                     disabled={palettePointer >= paletteHistory.length - 1}
                     className="p-1.5 bg-white/5 border border-white/10 rounded-md text-white/40 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -2095,6 +2098,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-white/50 uppercase tracking-widest leading-none mt-[2px]">{watermarkEnabled ? 'On' : 'Off'}</span>
                   <button
+                    aria-label="Toggle Watermark"
                     onClick={toggleWatermark}
                     className={`shrink-0 w-8 h-4 rounded-full flex items-center transition-colors px-0.5 ${watermarkEnabled ? 'bg-[#4facfe]' : 'bg-white/20'}`}
                   >
@@ -2139,6 +2143,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 </label>
                 <div className="flex gap-1">
                   <button 
+                    aria-label="Undo Design Refinement"
                     onClick={handleUndo} 
                     disabled={historyPointer <= 0}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -2146,6 +2151,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                     <Undo2 size={14} />
                   </button>
                   <button 
+                    aria-label="Redo Design Refinement"
                     onClick={handleRedo} 
                     disabled={historyPointer >= editHistory.length - 1}
                     className="p-1 rounded-md text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -2320,7 +2326,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 >
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Save Template</h2>
-                    <button onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
+                    <button aria-label="Close save template modal" onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
                       <X size={24} />
                     </button>
                   </div>
@@ -2428,18 +2434,22 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
               <div className="flex gap-3">
                 <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
                   <button 
+                    aria-label="Set light preview background"
                     onClick={() => setPreviewBg('light')}
                     className={`w-6 h-6 rounded bg-white border border-white/10 transition-all ${previewBg === 'light' ? 'scale-110 shadow-[0_0_10px_white]' : 'opacity-40 hover:opacity-100'}`}
                   />
                   <button 
+                    aria-label="Set dark preview background"
                     onClick={() => setPreviewBg('dark')}
                     className={`w-6 h-6 rounded bg-black border border-white/10 transition-all ml-1 ${previewBg === 'dark' ? 'scale-110 shadow-[0_0_10px_rgba(0,0,0,0.5)]' : 'opacity-40 hover:opacity-100'}`}
                   />
                   <button 
+                    aria-label="Set primary preview background"
                     onClick={() => setPreviewBg('primary')}
                     className={`w-6 h-6 rounded bg-[#4facfe] border border-white/10 transition-all ml-1 ${previewBg === 'primary' ? 'scale-110 shadow-[0_0_10px_rgba(79,172,254,0.5)]' : 'opacity-40 hover:opacity-100'}`}
                   />
                   <button 
+                    aria-label="Set transparent preview background"
                     onClick={() => setPreviewBg('transparent')}
                     className={`w-6 h-6 rounded bg-[url(https://www.transparenttextures.com/patterns/carbon-fibre.png)] border border-white/10 transition-all ml-1 ${previewBg === 'transparent' ? 'scale-110 shadow-[0_0_10px_rgba(255,255,255,0.2)]' : 'opacity-40 hover:opacity-100'}`}
                   />
@@ -2897,6 +2907,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
               className="w-full max-w-4xl bg-[#0b0c13] border border-white/20 rounded-[32px] p-8 text-white relative flex flex-col max-h-[90vh] overflow-y-auto shadow-2xl space-y-8 font-['Helvetica_Neue',Arial,sans-serif]"
             >
               <button 
+                aria-label="Close billing modal"
                 onClick={() => setShowBillingModal(false)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition-all"
               >
