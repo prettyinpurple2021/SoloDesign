@@ -1034,6 +1034,8 @@ export function BrandKitWorkspace({
                           <button 
                             onClick={() => copyToClipboard(c)} 
                             className="text-white/40 hover:text-white transition-colors"
+                            aria-label={`Copy color ${c}`}
+                            title={`Copy color ${c}`}
                           >
                             <Copy size={12} />
                           </button>
@@ -1172,6 +1174,8 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove rule"
+                            title="Remove rule"
                           >
                             <X size={14} />
                           </button>
@@ -1233,6 +1237,8 @@ export function BrandKitWorkspace({
                               });
                             }}
                             className="text-white/20 hover:text-red-400 p-1"
+                            aria-label="Remove restriction"
+                            title="Remove restriction"
                           >
                             <X size={14} />
                           </button>
@@ -1286,6 +1292,7 @@ export function BrandKitWorkspace({
                 <div className="bg-[#0c0d15] border border-white/5 rounded-2xl p-6 font-mono relative group text-left">
                   <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
+                      aria-label="Copy Tokens"
                       onClick={() => {
                         const code = codeTargetType === 'tailwind' ? 
 `{
