@@ -1032,6 +1032,8 @@ export function BrandKitWorkspace({
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] uppercase font-mono text-white/30">{i === 0 ? 'Primary shade' : `Auxiliary Accent 0${i}`}</span>
                           <button 
+                            aria-label="Copy color to clipboard"
+                            title="Copy color to clipboard"
                             onClick={() => copyToClipboard(c)} 
                             className="text-white/40 hover:text-white transition-colors"
                           >
