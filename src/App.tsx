@@ -1569,7 +1569,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           </div>
                           <h3 className="font-bold text-[18px] text-white line-clamp-1">{t.name}</h3>
                         </div>
-                        <button onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button aria-label="Delete template" title="Delete template" onClick={(e) => handleDeleteTemplate(t.id, e)} className="p-2 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -1655,7 +1655,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                           <h3 className="font-semibold text-[17px] text-white line-clamp-1 mb-1">{p.title}</h3>
                           <p className="text-white/40 text-[12px]">{new Date(p.updatedAt).toLocaleDateString()} • {p.imageOptions.length} variants</p>
                         </div>
-                        <button onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
+                        <button aria-label="Delete design" title="Delete design" onClick={(e) => handleDeleteProject(p.id, e)} className="p-2.5 text-white/30 hover:text-red-400 hover:bg-black/20 rounded-full transition-colors z-10">
                           <Trash2 size={16} />
                         </button>
                      </div>
@@ -2320,7 +2320,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
                 >
                   <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Save Template</h2>
-                    <button onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
+                    <button aria-label="Close" onClick={() => setShowSaveTemplateModal(false)} className="text-white/40 hover:text-white transition-colors">
                       <X size={24} />
                     </button>
                   </div>
@@ -2897,6 +2897,7 @@ ${palette.slice(2).map((c, i) => `    <color name="brand_accent_${i + 1}">${c}</
               className="w-full max-w-4xl bg-[#0b0c13] border border-white/20 rounded-[32px] p-8 text-white relative flex flex-col max-h-[90vh] overflow-y-auto shadow-2xl space-y-8 font-['Helvetica_Neue',Arial,sans-serif]"
             >
               <button 
+                aria-label="Close"
                 onClick={() => setShowBillingModal(false)}
                 className="absolute top-6 right-6 p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white transition-all"
               >
